@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { getAuthenticatedUserFromSession } from '@/features/auth/get-authenticated-user';
 import { listEnrolledCoursesWithProgress, selectEarnedCertificates, getRecentActivity } from '@/features/dashboard/dashboard-queries';
+import { getStudentProfile, isProfileComplete } from '@/features/profile/profile-queries';
 import { computeAchievements } from '@/features/dashboard/achievements';
 import { EnrolledCourseCard } from '@/features/dashboard/enrolled-course-card';
 import { ActivityFeed } from '@/features/dashboard/activity-feed';
@@ -16,12 +17,15 @@ export default async function DashboardPage() {
   if (!authenticatedUser) redirect('/sign-in');
 
   const enrolledCourses = await listEnrolledCoursesWithProgress(authenticatedUser.userId);
+  const profile = await getStudentProfile(authenticatedUser.userId);
+  const hasCompleteProfile = isProfileComplete(profile);
   const certificates = selectEarnedCertificates(enrolledCourses);
   const activity = await getRecentActivity(authenticatedUser.userId, enrolledCourses);
   const achievements = computeAchievements(enrolledCourses, certificates);
   const totalLessonsCompleted = enrolledCourses.reduce((sum, entry) => sum + entry.progress.completedLessons, 0);
 
-  const initials = authenticatedUser.displayName
+  const displayName = profile?.legalName || authenticatedUser.displayName;
+  const initials = displayName
     .split(' ')
     .map((part) => part[0])
     .slice(0, 2)
@@ -32,16 +36,36 @@ export default async function DashboardPage() {
     <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-navy-900 text-sm font-bold text-gold-400">
-            {initials || 'U'}
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-navy-900 text-sm font-bold text-gold-400">
+            {profile?.photoUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element -- external Supabase Storage URL
+              <img src={profile.photoUrl} alt="" className="h-full w-full object-cover" />
+            ) : (
+              initials || 'U'
+            )}
           </span>
           <div>
             <p className="text-xs text-slate-500">Welcome back</p>
-            <p className="text-lg font-extrabold text-navy-900">{authenticatedUser.displayName}</p>
+            <p className="text-lg font-extrabold text-navy-900">{displayName}</p>
           </div>
         </div>
         <DashboardSearchForm />
       </div>
+
+      {!hasCompleteProfile && (
+        <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-lg bg-amber-50 px-4 py-3">
+          <p className="flex items-center gap-2 text-sm text-amber-800">
+            <Icon name="shieldCheck" className="h-4 w-4 shrink-0" />
+            Complete your profile — it&apos;s required to issue your course certificates.
+          </p>
+          <Link
+            href="/dashboard/profile"
+            className="inline-flex shrink-0 items-center gap-1 rounded-md bg-amber-500 px-3 py-1.5 text-xs font-bold text-white hover:bg-amber-600"
+          >
+            Complete now &rarr;
+          </Link>
+        </div>
+      )}
 
       <section id="courses" className="mt-8 scroll-mt-6">
         <div className="flex items-center justify-between">

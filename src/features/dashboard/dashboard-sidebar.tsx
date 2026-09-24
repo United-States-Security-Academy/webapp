@@ -9,9 +9,18 @@ const SIDEBAR_LINKS: { label: string; href: string; icon: IconName }[] = [
   { label: 'Certificates', href: '/dashboard#certificates', icon: 'award' },
   { label: 'Activity', href: '/dashboard#activity', icon: 'clock' },
   { label: 'Browse Courses', href: '/dashboard/courses', icon: 'search' },
+  { label: 'My Profile', href: '/dashboard/profile', icon: 'instructor' },
 ];
 
-export function DashboardSidebar({ displayName }: { displayName: string }) {
+export function DashboardSidebar({
+  displayName,
+  photoUrl,
+  isProfileComplete,
+}: {
+  displayName: string;
+  photoUrl: string | null;
+  isProfileComplete: boolean;
+}) {
   const initials = displayName
     .split(' ')
     .map((part) => part[0])
@@ -38,13 +47,21 @@ export function DashboardSidebar({ displayName }: { displayName: string }) {
           >
             <Icon name={sidebarLink.icon} className="h-4 w-4" />
             {sidebarLink.label}
+            {sidebarLink.href === '/dashboard/profile' && !isProfileComplete && (
+              <span className="ml-auto h-1.5 w-1.5 shrink-0 rounded-full bg-gold-500" aria-label="Profile incomplete" />
+            )}
           </Link>
         ))}
       </nav>
 
       <div className="flex items-center gap-3 rounded-md bg-white/5 px-3 py-3">
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gold-500 text-xs font-bold text-navy-950">
-          {initials || 'U'}
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gold-500 text-xs font-bold text-navy-950">
+          {photoUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element -- external Supabase Storage URL
+            <img src={photoUrl} alt="" className="h-full w-full object-cover" />
+          ) : (
+            initials || 'U'
+          )}
         </span>
         <div className="min-w-0 flex-1">
           <p className="truncate text-xs font-semibold text-white">{displayName}</p>

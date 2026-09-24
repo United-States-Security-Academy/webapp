@@ -43,6 +43,20 @@
       "when": 1789731397355,
       "tag": "0005_square_wendell_vaughn",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1790053208669,
+      "tag": "0006_minor_sentinels",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1790109626016,
+      "tag": "0007_perfect_sentry",
+      "breakpoints": true
     }
   ]
 }

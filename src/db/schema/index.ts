@@ -6,3 +6,5 @@ export * from './enrollments';
 export * from './payments';
 export * from './lesson-progress';
 export * from './assessments';
+export * from './student-profiles';
+export * from './lesson-audio-transcripts';

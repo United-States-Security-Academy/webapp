@@ -2,6 +2,10 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { Icon, type IconName } from '@/components/ui/icon';
+import { COURSE_CATEGORIES, COURSE_CATEGORY_META } from '@/features/courses/course-category';
+import { WhyTrainSection } from '@/features/marketing/why-train-section';
+import { HowItWorksSection } from '@/features/marketing/how-it-works-section';
+import { DashboardPreviewSection } from '@/features/marketing/dashboard-preview-section';
 import { StatsSection } from '@/features/marketing/stats-section';
 import { TestimonialsSection } from '@/features/marketing/testimonials-section';
 import { CtaBannerSection } from '@/features/marketing/cta-banner-section';
@@ -15,38 +19,7 @@ const TRAINING_MODES: { icon: IconName; title: string; description: string }[] =
   { icon: 'instructor', title: 'Instructor-Led Training', description: 'Expert Instructors, Real-World Experience' },
 ];
 
-const TRAINING_PROGRAMS: { icon: IconName; title: string; description: string; image: string }[] = [
-  {
-    icon: 'military',
-    title: 'Military Training',
-    description: 'Leadership, tactical skills, mission readiness, ethics, and professional development for military personnel.',
-    image: '/military_training_photo.png',
-  },
-  {
-    icon: 'lawEnforcement',
-    title: 'Law Enforcement Training',
-    description: 'Use of force, investigations, patrol operations, de-escalation, active shooter response, and more.',
-    image: '/law_enforcement_training_photo.png',
-  },
-  {
-    icon: 'corrections',
-    title: 'Corrections Training',
-    description: 'Inmate supervision, crisis intervention, report writing, legal updates, and operational safety.',
-    image: '/corrections_training_photo.png',
-  },
-  {
-    icon: 'security',
-    title: 'Security Training',
-    description: 'Security officer certification, site operations, access control, risk management, and more.',
-    image: '/security_training_photo.png',
-  },
-  {
-    icon: 'safety',
-    title: 'Safety & Emergency Preparedness',
-    description: 'Workplace safety, OSHA compliance, first aid/CPR, fire safety, and emergency response training.',
-    image: '/safety_emergency_preparedness_photo.png',
-  },
-];
+const TRAINING_PROGRAMS = COURSE_CATEGORIES.map((category) => ({ category, ...COURSE_CATEGORY_META[category] }));
 
 const COMPLIANCE_HIGHLIGHTS: { icon: IconName; title: string; description: string }[] = [
   {
@@ -118,6 +91,9 @@ export default async function HomePage() {
         </div>
       </section>
 
+      <WhyTrainSection />
+      <HowItWorksSection />
+
       <section id="courses" className="bg-slate-50 py-16">
         <div className="mx-auto max-w-7xl px-4">
           <h2 className="text-center text-2xl font-extrabold tracking-wide text-navy-900">
@@ -126,13 +102,13 @@ export default async function HomePage() {
           <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-5">
             {TRAINING_PROGRAMS.map((trainingProgram) => (
               <div
-                key={trainingProgram.title}
+                key={trainingProgram.category}
                 className="flex flex-col overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm"
               >
                 <div className="relative aspect-[4/3] w-full">
                   <Image
                     src={trainingProgram.image}
-                    alt={trainingProgram.title}
+                    alt={trainingProgram.programTitle}
                     fill
                     sizes="(min-width: 1024px) 20vw, (min-width: 640px) 50vw, 100vw"
                     className="object-cover"
@@ -143,10 +119,13 @@ export default async function HomePage() {
                   </span>
                 </div>
                 <div className="flex flex-1 flex-col p-5">
-                  <h3 className="text-sm font-bold text-navy-900">{trainingProgram.title.toUpperCase()}</h3>
-                  <p className="mt-2 flex-1 text-xs leading-relaxed text-slate-600">{trainingProgram.description}</p>
-                  <Link href="/courses" className="mt-4 text-xs font-bold text-navy-800 hover:text-gold-600">
-                    VIEW COURSES &raquo;
+                  <h3 className="text-sm font-bold text-navy-900">{trainingProgram.programTitle.toUpperCase()}</h3>
+                  <p className="mt-2 flex-1 text-xs leading-relaxed text-slate-600">{trainingProgram.tagline}</p>
+                  <Link
+                    href={`/programs/${trainingProgram.urlSlug}`}
+                    className="mt-4 text-xs font-bold text-navy-800 hover:text-gold-600"
+                  >
+                    LEARN MORE &raquo;
                   </Link>
                 </div>
               </div>
@@ -154,6 +133,8 @@ export default async function HomePage() {
           </div>
         </div>
       </section>
+
+      <DashboardPreviewSection />
 
       <StatsSection />
       <TestimonialsSection />

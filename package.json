@@ -12,7 +12,7 @@
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio",
     "db:seed": "tsx scripts/seed.ts",
-    "postinstall": "node scripts/copy-pdfjs-assets.cjs"
+    "postinstall": "node scripts/copy-pdfjs-assets.cjs && node scripts/copy-tesseract-assets.cjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.5.1",
@@ -25,6 +25,7 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "stripe": "^17.2.0",
+    "tesseract.js": "^7.0.0",
     "zod": "^3.23.8"
   },
   "devDependencies": {

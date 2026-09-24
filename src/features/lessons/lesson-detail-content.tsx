@@ -8,9 +8,11 @@ import { requireLessonAccess } from '@/features/lessons/require-lesson-access';
 import { isUserEnrolledInCourse } from '@/features/enrollments/enrollment-queries';
 import { getCourseModuleProgress, getCompletedLessonIds } from '@/features/progress/course-progress-queries';
 import { createLessonPdfViewUrl } from '@/features/pdf/lesson-pdf-storage-client';
-import { getAssessmentByCourseId } from '@/features/assessments/assessment-queries';
+import { getLessonAudioTranscript } from '@/features/pdf/lesson-audio-transcript-queries';
+import { getAssessmentByCourseId, hasPassedRequiredAssessment } from '@/features/assessments/assessment-queries';
 import { ApiError } from '@/api-response/api-error';
 import { PdfViewer } from '@/features/pdf/lesson-pdf-viewer-lazy';
+import { PdfAudioPlayer } from '@/features/pdf/pdf-audio-player';
 import { MarkDoneButton } from '@/features/progress/mark-done-button';
 import { CourseContentSidebar } from '@/features/courses/course-content-sidebar';
 
@@ -50,9 +52,11 @@ export async function LessonDetailContent({ courseSlug, lessonSlug, basePath }: 
   const isCompleted = completedLessonIds.has(lessonRecord.id);
   const isCourseComplete = hasFullAccess && progress.completedAt !== null;
   const assessment = isCourseComplete ? await getAssessmentByCourseId(courseRecord.id) : null;
+  const hasPassedAssessment = isCourseComplete ? await hasPassedRequiredAssessment(authenticatedUser.userId, courseRecord.id) : false;
 
   const pdfViewUrl =
     lessonRecord.contentType === 'pdf' && lessonRecord.pdfStoragePath ? await createLessonPdfViewUrl(lessonRecord.pdfStoragePath) : null;
+  const cachedAudioPages = pdfViewUrl ? await getLessonAudioTranscript(lessonRecord.id) : null;
 
   return (
     <div className="mx-auto max-w-6xl px-4">
@@ -77,7 +81,18 @@ export async function LessonDetailContent({ courseSlug, lessonSlug, basePath }: 
             <MarkDoneButton lessonId={lessonRecord.id} isCompleted={isCompleted} />
           </div>
 
-          {isCourseComplete && assessment && (
+          {isCourseComplete && hasPassedAssessment && (
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-lg bg-gold-500/10 px-4 py-3">
+              <p className="text-sm font-semibold text-navy-900">You&apos;ve passed the exam for this course.</p>
+              <Link
+                href={`/dashboard/certificates/${courseRecord.slug}`}
+                className="inline-flex items-center gap-1 rounded-md bg-gold-500 px-4 py-2 text-sm font-bold text-navy-950 hover:bg-gold-400"
+              >
+                View Certificate <span aria-hidden>&rarr;</span>
+              </Link>
+            </div>
+          )}
+          {isCourseComplete && !hasPassedAssessment && assessment && (
             <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-lg bg-gold-500/10 px-4 py-3">
               <p className="text-sm font-semibold text-navy-900">You&apos;ve completed every lesson in this course.</p>
               <Link
@@ -92,7 +107,10 @@ export async function LessonDetailContent({ courseSlug, lessonSlug, basePath }: 
           <div className="mt-6">
             {lessonRecord.contentType === 'pdf' ? (
               pdfViewUrl ? (
-                <PdfViewer fileUrl={pdfViewUrl} />
+                <div className="flex flex-col gap-4">
+                  <PdfAudioPlayer fileUrl={pdfViewUrl} lessonId={lessonRecord.id} cachedPages={cachedAudioPages} />
+                  <PdfViewer fileUrl={pdfViewUrl} />
+                </div>
               ) : (
                 <p className="text-sm text-slate-500">This lesson&apos;s document has not been uploaded yet.</p>
               )

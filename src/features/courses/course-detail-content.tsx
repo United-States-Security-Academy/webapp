@@ -5,7 +5,7 @@ import { getCourseBySlug } from '@/features/courses/course-queries';
 import { getCourseContentTree } from '@/features/courses/course-content-queries';
 import { isUserEnrolledInCourse } from '@/features/enrollments/enrollment-queries';
 import { getCourseModuleProgress, getCompletedLessonIds } from '@/features/progress/course-progress-queries';
-import { getAssessmentByCourseId } from '@/features/assessments/assessment-queries';
+import { getAssessmentByCourseId, hasPassedRequiredAssessment } from '@/features/assessments/assessment-queries';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Icon } from '@/components/ui/icon';
@@ -48,6 +48,7 @@ export async function CourseDetailContent({ courseSlug, basePath }: CourseDetail
   const isFree = courseRecord.priceAmountMinor === 0;
   const isCourseComplete = hasFullAccess && progress.completedAt !== null;
   const assessment = isCourseComplete ? await getAssessmentByCourseId(courseRecord.id) : null;
+  const hasPassedAssessment = isCourseComplete && authenticatedUser ? await hasPassedRequiredAssessment(authenticatedUser.userId, courseRecord.id) : false;
 
   return (
     <div className="mx-auto grid max-w-5xl gap-8 px-4 lg:grid-cols-[2fr_1fr]">
@@ -103,7 +104,15 @@ export async function CourseDetailContent({ courseSlug, basePath }: CourseDetail
             hasFullAccess ? (
               <div className="mt-4">
                 <ProgressBar completed={progress.completedLessons} total={progress.totalLessons} />
-                {isCourseComplete && assessment && (
+                {isCourseComplete && hasPassedAssessment && (
+                  <Link
+                    href={`/dashboard/certificates/${courseRecord.slug}`}
+                    className="mt-4 inline-flex w-full items-center justify-center gap-1.5 rounded-md bg-gold-500 px-4 py-2 text-sm font-medium text-navy-950 hover:bg-gold-400"
+                  >
+                    <Icon name="award" className="h-4 w-4" /> View Certificate
+                  </Link>
+                )}
+                {isCourseComplete && !hasPassedAssessment && assessment && (
                   <Link
                     href={`${basePath}/${courseRecord.slug}/assessment`}
                     className="mt-4 inline-flex w-full items-center justify-center rounded-md bg-gold-500 px-4 py-2 text-sm font-medium text-navy-950 hover:bg-gold-400"
