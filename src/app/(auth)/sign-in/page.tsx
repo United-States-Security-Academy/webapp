@@ -5,27 +5,37 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { getSupabaseBrowserClient } from '@/supabase/browser-client';
+import { ResendConfirmationButton } from '@/features/auth/resend-confirmation-button';
+import { ContinueWithGoogleButton } from '@/features/auth/continue-with-google-button';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { PasswordInput } from '@/components/ui/password-input';
 
 export default function SignInPage() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [needsEmailConfirmation, setNeedsEmailConfirmation] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   async function handleSubmit(formEvent: React.FormEvent) {
     formEvent.preventDefault();
     setIsSubmitting(true);
     setErrorMessage(null);
+    setNeedsEmailConfirmation(false);
 
     const supabase = getSupabaseBrowserClient();
     const { error } = await supabase.auth.signInWithPassword({ email, password });
 
     setIsSubmitting(false);
     if (error) {
-      setErrorMessage(error.message);
+      if (error.code === 'email_not_confirmed') {
+        setNeedsEmailConfirmation(true);
+        setErrorMessage('Please confirm your email before signing in.');
+      } else {
+        setErrorMessage(error.message);
+      }
       return;
     }
     router.push('/post-sign-in');
@@ -79,7 +89,17 @@ export default function SignInPage() {
           <h2 className="text-2xl font-extrabold tracking-wide text-navy-900">SIGN IN</h2>
           <p className="mt-1 text-sm text-slate-500">Enter your credentials to continue.</p>
 
-          <form onSubmit={handleSubmit} className="mt-8 flex flex-col gap-4">
+          <div className="mt-6">
+            <ContinueWithGoogleButton />
+          </div>
+
+          <div className="my-6 flex items-center gap-3">
+            <div className="h-px flex-1 bg-slate-200" />
+            <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">or</span>
+            <div className="h-px flex-1 bg-slate-200" />
+          </div>
+
+          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <div>
               <label htmlFor="email" className="mb-1 block text-xs font-bold uppercase tracking-wide text-slate-600">
                 Email
@@ -94,12 +114,16 @@ export default function SignInPage() {
               />
             </div>
             <div>
-              <label htmlFor="password" className="mb-1 block text-xs font-bold uppercase tracking-wide text-slate-600">
-                Password
-              </label>
-              <Input
+              <div className="mb-1 flex items-center justify-between">
+                <label htmlFor="password" className="block text-xs font-bold uppercase tracking-wide text-slate-600">
+                  Password
+                </label>
+                <Link href="/forgot-password" className="text-xs font-semibold text-navy-800 hover:text-gold-600">
+                  Forgot password?
+                </Link>
+              </div>
+              <PasswordInput
                 id="password"
-                type="password"
                 placeholder="••••••••"
                 value={password}
                 onChange={(changeEvent) => setPassword(changeEvent.target.value)}
@@ -110,6 +134,7 @@ export default function SignInPage() {
             {errorMessage && (
               <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{errorMessage}</p>
             )}
+            {needsEmailConfirmation && <ResendConfirmationButton email={email} />}
 
             <Button type="submit" variant="gold" isLoading={isSubmitting} className="mt-2 w-full">
               {isSubmitting ? 'Signing in...' : 'SIGN IN'}

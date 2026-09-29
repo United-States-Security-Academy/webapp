@@ -34,6 +34,8 @@ export const ICON_NAME = {
   download: 'download',
   minus: 'minus',
   plus: 'plus',
+  eye: 'eye',
+  eyeOff: 'eyeOff',
 } as const;
 
 export type IconName = (typeof ICON_NAME)[keyof typeof ICON_NAME];
@@ -72,6 +74,8 @@ const ICON_PATHS: Record<IconName, string> = {
   download: 'M12 3v12M7 10l5 5 5-5M5 21h14',
   minus: 'M5 12h14',
   plus: 'M12 5v14M5 12h14',
+  eye: 'M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6z M12 15a3 3 0 100-6 3 3 0 000 6z',
+  eyeOff: 'M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6z M12 15a3 3 0 100-6 3 3 0 000 6z M3 3l18 18',
 };
 
 export function Icon({ name, ...props }: { name: IconName } & SVGProps<SVGSVGElement>) {

@@ -46,7 +46,17 @@ export default async function HomePage() {
   return (
     <>
       <section className="relative isolate flex min-h-[560px] items-center overflow-hidden bg-navy-950 text-white sm:min-h-[640px] lg:min-h-[760px]">
-        <Image src="/heroimge.png" alt="" fill priority sizes="100vw" className="object-cover object-center" />
+        <video
+          src="/Trainingvid.mp4"
+          poster="/heroimge.png"
+          autoPlay
+          muted
+          loop
+          playsInline
+          preload="auto"
+          aria-hidden="true"
+          className="absolute inset-0 h-full w-full object-cover object-center"
+        />
         <div className="absolute inset-0 bg-gradient-to-r from-navy-950 via-navy-950/75 to-navy-950/10" />
         <div className="relative mx-auto grid w-full max-w-7xl gap-10 px-4 py-16 lg:grid-cols-[3fr_2fr] lg:items-center">
           <div>

@@ -54,6 +54,15 @@ async function getUserRecordById(userId: string) {
   return userRecord ?? null;
 }
 
+async function getUserRecordByEmail(email: string) {
+  const [userRecord] = await db.select().from(users).where(eq(users.email, email));
+  return userRecord ?? null;
+}
+
+function isUniqueConstraintViolation(error: unknown): boolean {
+  return typeof error === 'object' && error !== null && 'code' in error && (error as { code: unknown }).code === '23505';
+}
+
 // Instructor/admin accounts are always created deliberately (seed script, future admin invite
 // flow) — this only ever provisions the 'learner' role, for people who self-registered via
 // Supabase Auth directly (e.g. the sign-up form) and have no row in our own `users` table yet.
@@ -61,15 +70,29 @@ async function provisionLearnerRecord(claims: SupabaseTokenClaims) {
   const email = claims.email ?? `${claims.userId}@unknown.local`;
   const displayName = claims.displayName || email.split('@')[0] || email;
 
-  const [createdUser] = await db
-    .insert(users)
-    .values({ id: claims.userId, email, displayName, role: 'learner' })
-    .onConflictDoNothing({ target: users.id })
-    .returning();
+  try {
+    const [createdUser] = await db
+      .insert(users)
+      .values({ id: claims.userId, email, displayName, role: 'learner' })
+      .onConflictDoNothing({ target: users.id })
+      .returning();
 
-  // onConflictDoNothing returns nothing on a race (another request provisioned it first) —
-  // the row exists either way, so just re-read it.
-  return createdUser ?? getUserRecordById(claims.userId);
+    // onConflictDoNothing returns nothing on a race (another request provisioned it first) —
+    // the row exists either way, so just re-read it.
+    return createdUser ?? (await getUserRecordById(claims.userId));
+  } catch (error) {
+    // The insert above only guards against a conflict on `id`. A conflict on `email` instead
+    // means a prior Supabase Auth account for this email was deleted directly (bypassing our
+    // own admin "delete user" action, which removes this row too) and the person signed up
+    // again, getting a new Auth id. Our row — and everything tied to it (enrollments, progress,
+    // certificates) — is really keyed by email as the person's identity, so reconnect to the
+    // existing row instead of failing the sign-in.
+    if (isUniqueConstraintViolation(error)) {
+      const existingUserByEmail = await getUserRecordByEmail(email);
+      if (existingUserByEmail) return existingUserByEmail;
+    }
+    throw error;
+  }
 }
 
 async function resolveAuthenticatedUser(supabaseAccessToken: string | null): Promise<AuthenticatedUser | null> {

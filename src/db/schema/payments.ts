@@ -2,7 +2,7 @@ import { pgTable, uuid, text, integer, timestamp, pgEnum, uniqueIndex } from 'dr
 import { users } from './users';
 import { courses } from './courses';
 
-export const paymentProviderEnum = pgEnum('payment_provider', ['stripe', 'paystack']);
+export const paymentProviderEnum = pgEnum('payment_provider', ['stripe']);
 export const paymentStatusEnum = pgEnum('payment_status', ['pending', 'succeeded', 'failed']);
 
 export const payments = pgTable(

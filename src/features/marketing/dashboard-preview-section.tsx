@@ -1,3 +1,6 @@
+'use client';
+
+import { useEffect, useRef, useState } from 'react';
 import { Icon, type IconName } from '@/components/ui/icon';
 import { StatCard } from '@/components/ui/stat-card';
 import { RadialProgress } from '@/components/ui/radial-progress';
@@ -8,6 +11,12 @@ const MOCK_SIDEBAR_LINKS: { label: string; icon: IconName }[] = [
   { label: 'My Courses', icon: 'bookOpen' },
   { label: 'Certificates', icon: 'award' },
   { label: 'Training History', icon: 'clock' },
+];
+
+const MOCK_STATS: { label: string; value: number; icon: IconName }[] = [
+  { label: 'Enrolled', value: 3, icon: 'bookOpen' },
+  { label: 'Certificates', value: 1, icon: 'award' },
+  { label: 'Lessons done', value: 13, icon: 'checkCircle' },
 ];
 
 const MOCK_COURSES: { title: string; lessons: string; percentage: number }[] = [
@@ -21,7 +30,38 @@ const MOCK_HISTORY: { text: string; time: string }[] = [
   { text: 'Enrolled in Security Officer Certification', time: '3d ago' },
 ];
 
+// Tailwind's transition-delay utilities only cover a fixed set of steps, and these need finer,
+// data-driven stagger amounts — an inline style is simpler here than fighting arbitrary values.
+function revealStyle(isVisible: boolean, delayMs: number) {
+  return {
+    opacity: isVisible ? 1 : 0,
+    transform: isVisible ? 'translateY(0)' : 'translateY(12px)',
+    transition: 'opacity 500ms ease-out, transform 500ms ease-out',
+    transitionDelay: `${delayMs}ms`,
+  };
+}
+
 export function DashboardPreviewSection() {
+  const panelRef = useRef<HTMLDivElement>(null);
+  const [isVisible, setIsVisible] = useState(false);
+
+  useEffect(() => {
+    const panelNode = panelRef.current;
+    if (!panelNode) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry?.isIntersecting) {
+          setIsVisible(true);
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.25 },
+    );
+    observer.observe(panelNode);
+    return () => observer.disconnect();
+  }, []);
+
   return (
     <section className="bg-white py-16">
       <div className="mx-auto max-w-6xl px-4">
@@ -34,7 +74,9 @@ export function DashboardPreviewSection() {
         </p>
 
         <div
-          className="mx-auto mt-12 max-w-5xl overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xl"
+          ref={panelRef}
+          className="mx-auto mt-12 max-w-5xl overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xl transition-all duration-700 ease-out"
+          style={{ opacity: isVisible ? 1 : 0, transform: isVisible ? 'translateY(0)' : 'translateY(32px)' }}
           aria-hidden="true"
         >
           <div className="flex items-center gap-2 border-b border-slate-200 bg-slate-100 px-4 py-3">
@@ -61,37 +103,42 @@ export function DashboardPreviewSection() {
                 >
                   <Icon name={link.icon} className="h-3.5 w-3.5" />
                   {link.label}
+                  {index === 0 && <span className="ml-auto h-1.5 w-1.5 shrink-0 animate-pulse rounded-full bg-gold-400" />}
                 </span>
               ))}
             </div>
 
             <div className="flex-1 space-y-5 p-5">
               <div className="grid grid-cols-3 gap-3">
-                <StatCard label="Enrolled" value={3} icon="bookOpen" />
-                <StatCard label="Certificates" value={1} icon="award" />
-                <StatCard label="Lessons done" value={13} icon="checkCircle" />
+                {MOCK_STATS.map((stat, index) => (
+                  <div key={stat.label} style={revealStyle(isVisible, 150 + index * 100)}>
+                    <StatCard label={stat.label} value={stat.value} icon={stat.icon} />
+                  </div>
+                ))}
               </div>
 
               <div>
                 <p className="mb-2 text-[11px] font-bold uppercase tracking-wide text-slate-500">My Courses</p>
                 <div className="grid gap-3 sm:grid-cols-2">
-                  {MOCK_COURSES.map((course) => (
+                  {MOCK_COURSES.map((course, index) => (
                     <div
                       key={course.title}
                       className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white p-3"
+                      style={revealStyle(isVisible, 450 + index * 120)}
                     >
                       <div className="min-w-0">
                         <p className="truncate text-xs font-bold text-navy-900">{course.title}</p>
                         <p className="mt-0.5 text-[11px] text-slate-500">{course.lessons}</p>
                       </div>
-                      <RadialProgress percentage={course.percentage} size={40} strokeWidth={4} />
+                      {/* Animates from 0 to its target percentage once visible, via RadialProgress's own transition. */}
+                      <RadialProgress percentage={isVisible ? course.percentage : 0} size={40} strokeWidth={4} />
                     </div>
                   ))}
                 </div>
               </div>
 
               <div className="grid gap-4 sm:grid-cols-2">
-                <div>
+                <div style={revealStyle(isVisible, 700)}>
                   <p className="mb-2 text-[11px] font-bold uppercase tracking-wide text-slate-500">Certificates</p>
                   <div className="flex items-center gap-3 rounded-lg border border-slate-200 bg-white p-3">
                     <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gold-500/10 text-gold-600">
@@ -107,8 +154,12 @@ export function DashboardPreviewSection() {
                 <div>
                   <p className="mb-2 text-[11px] font-bold uppercase tracking-wide text-slate-500">Training History</p>
                   <div className="flex flex-col gap-2 rounded-lg border border-slate-200 bg-white p-3">
-                    {MOCK_HISTORY.map((item) => (
-                      <div key={item.text} className="flex items-center justify-between gap-2">
+                    {MOCK_HISTORY.map((item, index) => (
+                      <div
+                        key={item.text}
+                        className="flex items-center justify-between gap-2"
+                        style={revealStyle(isVisible, 800 + index * 150)}
+                      >
                         <p className="truncate text-[11px] text-slate-600">{item.text}</p>
                         <p className="shrink-0 text-[10px] text-slate-400">{item.time}</p>
                       </div>

@@ -1,7 +1,7 @@
 # United States Security Academy (USSA)
 
 Course delivery platform. Next.js App Router + Supabase (Postgres/Auth) +
-Drizzle ORM + Cloudflare Stream + Stripe/Paystack.
+Drizzle ORM + Cloudflare Stream + Stripe.
 
 This is not a general LMS — no grading, transcripts, SCORM, or term-based
 enrollment. See the implementation plan for full scope and rationale.
@@ -14,7 +14,7 @@ enrollment. See the implementation plan for full scope and rationale.
 - Supabase Auth (cookie for web/PWA, bearer token for the future mobile app)
 - Tailwind CSS
 - Cloudflare Stream for video (signed URLs only, direct-from-browser uploads)
-- Stripe (USD and other non-NGN currencies) and Paystack (NGN) for payments
+- Stripe for payments
 
 ## Project structure
 
@@ -72,8 +72,9 @@ canvas renderer and its client-only lazy wrapper).
    convention: `.env.local` is loaded automatically and gitignored). All
    variables are required — the app validates them at boot via `env.ts` and
    fails loudly if any are missing, rather than failing lazily at first use.
-   For integrations you haven't built yet (Cloudflare/Stripe/Paystack before
-   stages 4 and 7), any non-empty placeholder value satisfies validation.
+   For integrations you haven't built yet (Cloudflare before stage 4; Stripe
+   is optional until stage 7's checkout flow exists), any non-empty
+   placeholder value satisfies validation.
 
 3. Point `DATABASE_URL` at your Supabase project's **transaction pooler**
    connection string (Project Settings → Database → Connection string →
@@ -121,8 +122,8 @@ can mutate any course).
 ## Webhook tunnel (local development)
 
 Payment and video-processing webhooks need a public URL during local dev.
-Instructions for Stripe and Paystack webhook tunneling will be added here once
-those webhook handlers are implemented (build stages 6–7).
+Instructions for Stripe webhook tunneling will be added here once that
+webhook handler is implemented (build stage 7).
 
 ### Cloudflare Stream
 
@@ -164,8 +165,6 @@ in sync.
 | `CLOUDFLARE_STREAM_WEBHOOK_SECRET` | Verifies Cloudflare Stream webhook signatures |
 | `STRIPE_SECRET_KEY` | Stripe API secret key |
 | `STRIPE_WEBHOOK_SECRET` | Verifies Stripe webhook signatures |
-| `PAYSTACK_SECRET_KEY` | Paystack API secret key |
-| `NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY` | Paystack public key (browser checkout) |
 | `NEXT_PUBLIC_APP_URL` | Base URL used in redirects and webhooks |
 
 ## API surface for the future mobile app
@@ -206,4 +205,4 @@ This project is being built in the following order, per the approved plan
 4. Cloudflare Stream direct upload flow + ready-state webhook
 5. Signed playback endpoint + `requireLessonAccess` ← current stage
 6. Learner course pages and player with progress heartbeats
-7. Free enrollment, then Stripe checkout, then Paystack checkout
+7. Free enrollment, then Stripe checkout
