@@ -29,7 +29,9 @@ export function ProfilePhotoUploader({ photoUrl, displayName }: { photoUrl: stri
     setUploadStatus('requestingUploadUrl');
 
     try {
-      const { path, token } = await createProfilePhotoUploadTarget();
+      const targetResult = await createProfilePhotoUploadTarget();
+      if (!targetResult.success) throw new Error(targetResult.error);
+      const { path, token } = targetResult.data;
 
       setUploadStatus('uploading');
       const supabaseBrowserClient = getSupabaseBrowserClient();

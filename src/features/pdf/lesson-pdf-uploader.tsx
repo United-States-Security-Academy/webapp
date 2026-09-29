@@ -21,7 +21,9 @@ export function LessonPdfUploader({ lessonId, hasExistingPdf }: { lessonId: stri
     setUploadStatus('requestingUploadUrl');
 
     try {
-      const { path, token } = await createLessonPdfUploadTarget(lessonId);
+      const targetResult = await createLessonPdfUploadTarget(lessonId);
+      if (!targetResult.success) throw new Error(targetResult.error);
+      const { path, token } = targetResult.data;
 
       setUploadStatus('uploading');
       const supabaseBrowserClient = getSupabaseBrowserClient();

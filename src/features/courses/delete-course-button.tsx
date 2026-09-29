@@ -18,14 +18,14 @@ export function DeleteCourseButton({ courseId, courseTitle }: { courseId: string
 
     setIsDeleting(true);
     setErrorMessage(null);
-    try {
-      await deleteCourse(courseId);
-      router.push('/instructor/courses');
-      router.refresh();
-    } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : 'Failed to delete course.');
+    const result = await deleteCourse(courseId);
+    if (!result.success) {
+      setErrorMessage(result.error);
       setIsDeleting(false);
+      return;
     }
+    router.push('/instructor/courses');
+    router.refresh();
   }
 
   return (

@@ -26,17 +26,17 @@ export function AssessmentAttemptForm({
     formEvent.preventDefault();
     setIsSubmitting(true);
     setErrorMessage(null);
-    try {
-      const answers: SubmittedAnswer[] = assessment.questions.map((question) => ({
-        questionId: question.id,
-        selectedChoiceId: selectedChoiceByQuestionId[question.id]!,
-      }));
-      const attempt = await submitAssessmentAttempt(courseId, answers);
-      router.push(`/dashboard/courses/${courseSlug}/assessment/results/${attempt.id}`);
-    } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : 'Failed to submit assessment.');
+    const answers: SubmittedAnswer[] = assessment.questions.map((question) => ({
+      questionId: question.id,
+      selectedChoiceId: selectedChoiceByQuestionId[question.id]!,
+    }));
+    const result = await submitAssessmentAttempt(courseId, answers);
+    if (!result.success) {
+      setErrorMessage(result.error);
       setIsSubmitting(false);
+      return;
     }
+    router.push(`/dashboard/courses/${courseSlug}/assessment/results/${result.data.id}`);
   }
 
   return (

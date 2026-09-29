@@ -16,15 +16,15 @@ export function AddQuestionForm({ assessmentId }: { assessmentId: string }) {
     formEvent.preventDefault();
     setIsSubmitting(true);
     setErrorMessage(null);
-    try {
-      await addQuestion(assessmentId, questionText);
-      setQuestionText('');
-      router.refresh();
-    } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : 'Failed to add question.');
-    } finally {
+    const result = await addQuestion(assessmentId, questionText);
+    if (!result.success) {
+      setErrorMessage(result.error);
       setIsSubmitting(false);
+      return;
     }
+    setQuestionText('');
+    setIsSubmitting(false);
+    router.refresh();
   }
 
   return (

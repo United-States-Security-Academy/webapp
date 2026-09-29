@@ -16,15 +16,15 @@ export function AddModuleForm({ courseId }: { courseId: string }) {
     formEvent.preventDefault();
     setIsSubmitting(true);
     setErrorMessage(null);
-    try {
-      await createModule(courseId, title);
-      setTitle('');
-      router.refresh();
-    } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : 'Failed to add module.');
-    } finally {
+    const result = await createModule(courseId, title);
+    if (!result.success) {
+      setErrorMessage(result.error);
       setIsSubmitting(false);
+      return;
     }
+    setTitle('');
+    setIsSubmitting(false);
+    router.refresh();
   }
 
   return (

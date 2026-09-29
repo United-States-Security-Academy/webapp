@@ -16,13 +16,13 @@ export function DeleteAssessmentButton({ assessmentId }: { assessmentId: string 
 
     setIsDeleting(true);
     setErrorMessage(null);
-    try {
-      await deleteAssessment(assessmentId);
-      router.refresh();
-    } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : 'Failed to delete assessment.');
+    const result = await deleteAssessment(assessmentId);
+    if (!result.success) {
+      setErrorMessage(result.error);
       setIsDeleting(false);
+      return;
     }
+    router.refresh();
   }
 
   return (

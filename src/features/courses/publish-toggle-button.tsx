@@ -13,18 +13,14 @@ export function PublishToggleButton({ courseId, isPublished }: { courseId: strin
   async function handleClick() {
     setIsSubmitting(true);
     setErrorMessage(null);
-    try {
-      if (isPublished) {
-        await unpublishCourse(courseId);
-      } else {
-        await publishCourse(courseId);
-      }
-      router.refresh();
-    } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : 'Failed to update course status.');
-    } finally {
+    const result = isPublished ? await unpublishCourse(courseId) : await publishCourse(courseId);
+    if (!result.success) {
+      setErrorMessage(result.error);
       setIsSubmitting(false);
+      return;
     }
+    setIsSubmitting(false);
+    router.refresh();
   }
 
   return (

@@ -16,14 +16,12 @@ export function UserRoleSelect({ userId, currentRole, disabled }: { userId: stri
     setRole(newRole);
     setIsSaving(true);
     setErrorMessage(null);
-    try {
-      await updateUserRole(userId, newRole);
-    } catch (error) {
+    const result = await updateUserRole(userId, newRole);
+    if (!result.success) {
       setRole(previousRole);
-      setErrorMessage(error instanceof Error ? error.message : 'Failed to update role.');
-    } finally {
-      setIsSaving(false);
+      setErrorMessage(result.error);
     }
+    setIsSaving(false);
   }
 
   if (disabled) {

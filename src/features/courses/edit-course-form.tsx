@@ -29,16 +29,16 @@ export function EditCourseForm({ course }: { course: Course }) {
     formEvent.preventDefault();
     setIsSubmitting(true);
     setErrorMessage(null);
-    try {
-      const priceAmountMinor = Math.round((Number.parseFloat(priceInput) || 0) * 100);
-      await updateCourse(course.id, { title, summary, category, priceAmountMinor, currency });
-      setIsEditing(false);
-      router.refresh();
-    } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : 'Failed to save changes.');
-    } finally {
+    const priceAmountMinor = Math.round((Number.parseFloat(priceInput) || 0) * 100);
+    const result = await updateCourse(course.id, { title, summary, category, priceAmountMinor, currency });
+    if (!result.success) {
+      setErrorMessage(result.error);
       setIsSubmitting(false);
+      return;
     }
+    setIsEditing(false);
+    setIsSubmitting(false);
+    router.refresh();
   }
 
   if (!isEditing) {

@@ -55,20 +55,29 @@ export default function NewCoursePage() {
     setErrorMessage(null);
     setStatusText('Creating course...');
 
-    try {
-      const priceAmountMinor = Math.round((Number.parseFloat(priceInput) || 0) * 100);
-      const createdCourse = await createCourse({ title, slug, summary, category, priceAmountMinor, currency });
+    const priceAmountMinor = Math.round((Number.parseFloat(priceInput) || 0) * 100);
+    const createResult = await createCourse({ title, slug, summary, category, priceAmountMinor, currency });
+    if (!createResult.success) {
+      setErrorMessage(createResult.error);
+      setStatusText('Create course');
+      setIsSubmitting(false);
+      return;
+    }
+    const createdCourse = createResult.data;
 
+    try {
       if (thumbnailFile) {
         setStatusText('Uploading thumbnail...');
-        const { path, token } = await createCourseThumbnailUploadTarget(createdCourse.id);
+        const targetResult = await createCourseThumbnailUploadTarget(createdCourse.id);
+        if (!targetResult.success) throw new Error(targetResult.error);
+        const { path, token } = targetResult.data;
         const supabaseBrowserClient = getSupabaseBrowserClient();
         await supabaseBrowserClient.storage.from('course-thumbnails').uploadToSignedUrl(path, token, thumbnailFile, { upsert: true });
       }
 
       router.push(`/instructor/courses/${createdCourse.slug}`);
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : 'Failed to create course.');
+      setErrorMessage(error instanceof Error ? error.message : 'Course created, but the thumbnail upload failed.');
       setStatusText('Create course');
       setIsSubmitting(false);
     }

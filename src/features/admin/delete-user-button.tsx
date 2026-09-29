@@ -18,13 +18,13 @@ export function DeleteUserButton({ userId, displayName, disabled }: { userId: st
 
     setIsDeleting(true);
     setErrorMessage(null);
-    try {
-      await deleteUser(userId);
-      router.refresh();
-    } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : 'Failed to delete user.');
+    const result = await deleteUser(userId);
+    if (!result.success) {
+      setErrorMessage(result.error);
       setIsDeleting(false);
+      return;
     }
+    router.refresh();
   }
 
   if (disabled) return null;

@@ -13,6 +13,7 @@ function ChoiceRow({ questionId, choice }: { questionId: string; choice: Assessm
   const router = useRouter();
   const [choiceText, setChoiceText] = useState(choice.choiceText);
   const [isSaving, setIsSaving] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   async function handleBlur() {
     const trimmedText = choiceText.trim();
@@ -21,46 +22,52 @@ function ChoiceRow({ questionId, choice }: { questionId: string; choice: Assessm
       return;
     }
     setIsSaving(true);
-    try {
-      await updateChoiceText(choice.id, trimmedText);
-      router.refresh();
-    } catch {
+    const result = await updateChoiceText(choice.id, trimmedText);
+    if (!result.success) {
       setChoiceText(choice.choiceText);
-    } finally {
-      setIsSaving(false);
+      setErrorMessage(result.error);
+    } else {
+      setErrorMessage(null);
+      router.refresh();
     }
+    setIsSaving(false);
   }
 
   async function handleMarkCorrect() {
-    await setCorrectChoice(questionId, choice.id);
-    router.refresh();
+    const result = await setCorrectChoice(questionId, choice.id);
+    if (result.success) router.refresh();
+    else setErrorMessage(result.error);
   }
 
   async function handleDelete() {
-    await deleteChoice(choice.id);
-    router.refresh();
+    const result = await deleteChoice(choice.id);
+    if (result.success) router.refresh();
+    else setErrorMessage(result.error);
   }
 
   return (
-    <div className="flex items-center gap-2">
-      <input
-        type="radio"
-        name={`correct-choice-${questionId}`}
-        checked={choice.isCorrect}
-        onChange={handleMarkCorrect}
-        aria-label="Mark as the correct answer"
-        className="h-4 w-4 shrink-0 accent-gold-500"
-      />
-      <Input
-        value={choiceText}
-        onChange={(changeEvent) => setChoiceText(changeEvent.target.value)}
-        onBlur={handleBlur}
-        disabled={isSaving}
-        className={choice.isCorrect ? 'border-gold-500' : ''}
-      />
-      <button type="button" onClick={handleDelete} aria-label="Delete choice" className="shrink-0 text-slate-400 hover:text-red-600">
-        <Icon name="close" className="h-4 w-4" />
-      </button>
+    <div>
+      <div className="flex items-center gap-2">
+        <input
+          type="radio"
+          name={`correct-choice-${questionId}`}
+          checked={choice.isCorrect}
+          onChange={handleMarkCorrect}
+          aria-label="Mark as the correct answer"
+          className="h-4 w-4 shrink-0 accent-gold-500"
+        />
+        <Input
+          value={choiceText}
+          onChange={(changeEvent) => setChoiceText(changeEvent.target.value)}
+          onBlur={handleBlur}
+          disabled={isSaving}
+          className={choice.isCorrect ? 'border-gold-500' : ''}
+        />
+        <button type="button" onClick={handleDelete} aria-label="Delete choice" className="shrink-0 text-slate-400 hover:text-red-600">
+          <Icon name="close" className="h-4 w-4" />
+        </button>
+      </div>
+      {errorMessage && <p className="mt-1 pl-6 text-xs text-red-600">{errorMessage}</p>}
     </div>
   );
 }
@@ -69,27 +76,33 @@ function AddChoiceForm({ questionId }: { questionId: string }) {
   const router = useRouter();
   const [choiceText, setChoiceText] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   async function handleSubmit(formEvent: React.FormEvent) {
     formEvent.preventDefault();
     if (!choiceText.trim()) return;
     setIsSubmitting(true);
-    try {
-      await addChoice(questionId, choiceText.trim());
+    const result = await addChoice(questionId, choiceText.trim());
+    if (!result.success) {
+      setErrorMessage(result.error);
+    } else {
+      setErrorMessage(null);
       setChoiceText('');
       router.refresh();
-    } finally {
-      setIsSubmitting(false);
     }
+    setIsSubmitting(false);
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex gap-2 pl-6">
-      <Input placeholder="Add a choice..." value={choiceText} onChange={(changeEvent) => setChoiceText(changeEvent.target.value)} />
-      <Button type="submit" variant="outline" isLoading={isSubmitting}>
-        Add
-      </Button>
-    </form>
+    <div className="pl-6">
+      <form onSubmit={handleSubmit} className="flex gap-2">
+        <Input placeholder="Add a choice..." value={choiceText} onChange={(changeEvent) => setChoiceText(changeEvent.target.value)} />
+        <Button type="submit" variant="outline" isLoading={isSubmitting}>
+          Add
+        </Button>
+      </form>
+      {errorMessage && <p className="mt-1 text-xs text-red-600">{errorMessage}</p>}
+    </div>
   );
 }
 
@@ -97,6 +110,7 @@ export function QuestionEditor({ question, questionNumber }: { question: Questio
   const router = useRouter();
   const [questionText, setQuestionText] = useState(question.questionText);
   const [isSaving, setIsSaving] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   async function handleBlur() {
     const trimmedText = questionText.trim();
@@ -105,21 +119,23 @@ export function QuestionEditor({ question, questionNumber }: { question: Questio
       return;
     }
     setIsSaving(true);
-    try {
-      await updateQuestionText(question.id, trimmedText);
-      router.refresh();
-    } catch {
+    const result = await updateQuestionText(question.id, trimmedText);
+    if (!result.success) {
       setQuestionText(question.questionText);
-    } finally {
-      setIsSaving(false);
+      setErrorMessage(result.error);
+    } else {
+      setErrorMessage(null);
+      router.refresh();
     }
+    setIsSaving(false);
   }
 
   async function handleDeleteQuestion() {
     const confirmed = window.confirm('Delete this question and its choices? This cannot be undone.');
     if (!confirmed) return;
-    await deleteQuestion(question.id);
-    router.refresh();
+    const result = await deleteQuestion(question.id);
+    if (result.success) router.refresh();
+    else setErrorMessage(result.error);
   }
 
   const hasCorrectChoice = question.choices.some((choice) => choice.isCorrect);
@@ -136,6 +152,7 @@ export function QuestionEditor({ question, questionNumber }: { question: Questio
             disabled={isSaving}
             className="font-medium"
           />
+          {errorMessage && <p className="mt-1 text-xs text-red-600">{errorMessage}</p>}
           {!hasCorrectChoice && question.choices.length > 0 && (
             <p className="mt-1 text-xs font-semibold text-red-600">Select a correct answer below.</p>
           )}

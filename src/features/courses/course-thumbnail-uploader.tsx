@@ -21,7 +21,9 @@ export function CourseThumbnailUploader({ courseId, hasExistingThumbnail }: { co
     setUploadStatus('requestingUploadUrl');
 
     try {
-      const { path, token } = await createCourseThumbnailUploadTarget(courseId);
+      const targetResult = await createCourseThumbnailUploadTarget(courseId);
+      if (!targetResult.success) throw new Error(targetResult.error);
+      const { path, token } = targetResult.data;
 
       setUploadStatus('uploading');
       const supabaseBrowserClient = getSupabaseBrowserClient();

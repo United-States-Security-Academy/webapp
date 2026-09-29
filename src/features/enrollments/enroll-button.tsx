@@ -13,14 +13,13 @@ export function EnrollButton({ courseSlug }: { courseSlug: string }) {
   async function handleEnroll() {
     setIsEnrolling(true);
     setErrorMessage(null);
-    try {
-      await enrollInFreeCourse(courseSlug);
-      router.refresh();
-    } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : 'Failed to enroll. Please try again.');
-    } finally {
+    const result = await enrollInFreeCourse(courseSlug);
+    if (!result.success) {
+      setErrorMessage(result.error);
       setIsEnrolling(false);
+      return;
     }
+    router.refresh();
   }
 
   return (

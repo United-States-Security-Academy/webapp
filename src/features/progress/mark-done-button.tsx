@@ -13,14 +13,13 @@ export function MarkDoneButton({ lessonId, isCompleted }: { lessonId: string; is
   async function handleClick() {
     setIsSubmitting(true);
     setErrorMessage(null);
-    try {
-      await markLessonDone(lessonId);
-      router.refresh();
-    } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : 'Failed to save. Please try again.');
-    } finally {
+    const result = await markLessonDone(lessonId);
+    if (!result.success) {
+      setErrorMessage(result.error);
       setIsSubmitting(false);
+      return;
     }
+    router.refresh();
   }
 
   if (isCompleted) {

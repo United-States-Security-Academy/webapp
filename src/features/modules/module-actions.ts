@@ -3,10 +3,14 @@
 import { desc, eq } from 'drizzle-orm';
 import { db } from '@/db/client';
 import { modules } from '@/db/schema';
+import { ApiError } from '@/api-response/api-error';
+import type { ActionResult } from '@/api-response/action-result';
 import { requireAuthenticatedUserFromSession } from '@/features/auth/require-authenticated-user';
 import { requireCourseOwnership } from '@/features/courses/require-course-ownership';
 
 const MODULE_POSITION_GAP = 10;
+
+type Module = typeof modules.$inferSelect;
 
 async function getNextModulePosition(courseId: string): Promise<number> {
   const [lastModule] = await db
@@ -18,13 +22,19 @@ async function getNextModulePosition(courseId: string): Promise<number> {
   return (lastModule?.position ?? 0) + MODULE_POSITION_GAP;
 }
 
-export async function createModule(courseId: string, title: string) {
-  const authenticatedUser = await requireAuthenticatedUserFromSession();
-  await requireCourseOwnership(authenticatedUser, courseId);
+export async function createModule(courseId: string, title: string): Promise<ActionResult<Module>> {
+  try {
+    const authenticatedUser = await requireAuthenticatedUserFromSession();
+    await requireCourseOwnership(authenticatedUser, courseId);
 
-  const position = await getNextModulePosition(courseId);
-  const [createdModule] = await db.insert(modules).values({ courseId, title, position }).returning();
-  return createdModule;
+    const position = await getNextModulePosition(courseId);
+    const [createdModule] = await db.insert(modules).values({ courseId, title, position }).returning();
+    if (!createdModule) return { success: false, error: 'Failed to add module.' };
+    return { success: true, data: createdModule };
+  } catch (error) {
+    if (error instanceof ApiError) return { success: false, error: error.message };
+    throw error;
+  }
 }
 
 export async function reorderModules(courseId: string, orderedModuleIds: string[]) {

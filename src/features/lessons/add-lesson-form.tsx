@@ -31,19 +31,19 @@ export function AddLessonForm({ moduleId }: { moduleId: string }) {
     formEvent.preventDefault();
     setIsSubmitting(true);
     setErrorMessage(null);
-    try {
-      await createLesson(moduleId, { title, slug, isPreview, contentType });
-      setTitle('');
-      setSlug('');
-      setHasEditedSlugManually(false);
-      setIsPreview(false);
-      setContentType('video');
-      router.refresh();
-    } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : 'Failed to add lesson.');
-    } finally {
+    const result = await createLesson(moduleId, { title, slug, isPreview, contentType });
+    if (!result.success) {
+      setErrorMessage(result.error);
       setIsSubmitting(false);
+      return;
     }
+    setTitle('');
+    setSlug('');
+    setHasEditedSlugManually(false);
+    setIsPreview(false);
+    setContentType('video');
+    setIsSubmitting(false);
+    router.refresh();
   }
 
   return (

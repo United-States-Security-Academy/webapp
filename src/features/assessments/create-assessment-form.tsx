@@ -18,14 +18,14 @@ export function CreateAssessmentForm({ courseId }: { courseId: string }) {
     formEvent.preventDefault();
     setIsSubmitting(true);
     setErrorMessage(null);
-    try {
-      const passingScorePercentage = Math.min(100, Math.max(0, Number.parseInt(passingScoreInput, 10) || 0));
-      await createOrUpdateAssessment(courseId, { title, passingScorePercentage });
-      router.refresh();
-    } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : 'Failed to create assessment.');
+    const passingScorePercentage = Math.min(100, Math.max(0, Number.parseInt(passingScoreInput, 10) || 0));
+    const result = await createOrUpdateAssessment(courseId, { title, passingScorePercentage });
+    if (!result.success) {
+      setErrorMessage(result.error);
       setIsSubmitting(false);
+      return;
     }
+    router.refresh();
   }
 
   return (

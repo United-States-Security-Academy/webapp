@@ -56,26 +56,26 @@ export function ProfileForm({ profile, hasSavedProfile }: { profile: StudentProf
     formEvent.preventDefault();
     setIsSubmitting(true);
     setErrorMessage(null);
-    try {
-      await upsertStudentProfile({
-        legalName,
-        governmentIdType: governmentIdType as StudentProfile['governmentIdType'],
-        governmentIdValue,
-        gender: gender as StudentProfile['gender'],
-        dateOfBirth,
-        phoneNumber,
-        country,
-        state,
-        city,
-        residentialAddress,
-      });
-      setIsEditing(false);
-      router.refresh();
-    } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : 'Failed to save profile.');
-    } finally {
+    const result = await upsertStudentProfile({
+      legalName,
+      governmentIdType: governmentIdType as StudentProfile['governmentIdType'],
+      governmentIdValue,
+      gender: gender as StudentProfile['gender'],
+      dateOfBirth,
+      phoneNumber,
+      country,
+      state,
+      city,
+      residentialAddress,
+    });
+    if (!result.success) {
+      setErrorMessage(result.error);
       setIsSubmitting(false);
+      return;
     }
+    setIsEditing(false);
+    setIsSubmitting(false);
+    router.refresh();
   }
 
   if (!isEditing) {

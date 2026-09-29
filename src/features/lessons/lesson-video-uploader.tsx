@@ -20,7 +20,9 @@ export function LessonVideoUploader({ lessonId, hasExistingVideo }: { lessonId: 
     setUploadStatus('requestingUploadUrl');
 
     try {
-      const { cloudflareStreamUploadUrl } = await createLessonDirectUpload(lessonId);
+      const uploadTargetResult = await createLessonDirectUpload(lessonId);
+      if (!uploadTargetResult.success) throw new Error(uploadTargetResult.error);
+      const { cloudflareStreamUploadUrl } = uploadTargetResult.data;
 
       setUploadStatus('uploading');
       const formData = new FormData();
