@@ -23,7 +23,7 @@ export const COURSE_CATEGORY_META: Record<CourseCategory, CourseCategoryMeta> = 
     tagline: 'Leadership, tactical skills, mission readiness, ethics, and professional development for military personnel.',
     icon: 'military',
     urlSlug: 'military',
-    image: '/military_training_photo.png',
+    image: '/Picture3.png',
     overview:
       "USSA's Military Training programs build leadership, tactical proficiency, and mission readiness for service " +
       'members at every stage of their career. Courses cover military ethics and professional standards, tactical ' +
@@ -36,7 +36,7 @@ export const COURSE_CATEGORY_META: Record<CourseCategory, CourseCategoryMeta> = 
     tagline: 'Use of force, investigations, patrol operations, de-escalation, active shooter response, and more.',
     icon: 'lawEnforcement',
     urlSlug: 'law-enforcement',
-    image: '/law_enforcement_training_photo.png',
+    image: '/Picture4.png',
     overview:
       "USSA's Law Enforcement Training equips officers with the practical, legally sound skills the job demands — " +
       'from use-of-force fundamentals and de-escalation to investigations, patrol operations, and active shooter ' +
@@ -49,7 +49,7 @@ export const COURSE_CATEGORY_META: Record<CourseCategory, CourseCategoryMeta> = 
     tagline: 'Inmate supervision, crisis intervention, report writing, legal updates, and operational safety.',
     icon: 'corrections',
     urlSlug: 'corrections',
-    image: '/corrections_training_photo.png',
+    image: '/Picture2.png',
     overview:
       "USSA's Corrections Training prepares officers and staff for the realities of institutional supervision — " +
       'inmate management, crisis intervention, legal updates, and operational safety. Programs emphasize sound ' +
@@ -62,7 +62,7 @@ export const COURSE_CATEGORY_META: Record<CourseCategory, CourseCategoryMeta> = 
     tagline: 'Security officer certification, site operations, access control, risk management, and more.',
     icon: 'security',
     urlSlug: 'security',
-    image: '/security_training_photo.png',
+    image: '/Picture1.png',
     overview:
       "USSA's Security Training programs, including our Security Officer Certification, cover the core " +
       'competencies private and contract security professionals need: site operations, access control, risk ' +
@@ -75,7 +75,7 @@ export const COURSE_CATEGORY_META: Record<CourseCategory, CourseCategoryMeta> = 
     tagline: 'Workplace safety, OSHA compliance, first aid/CPR, fire safety, and emergency response training.',
     icon: 'safety',
     urlSlug: 'safety',
-    image: '/safety_emergency_preparedness_photo.png',
+    image: '/Picture5.png',
     overview:
       "USSA's Safety & Emergency Preparedness programs cover workplace safety, OSHA compliance, first aid and CPR, " +
       'fire safety, and emergency response planning. Built for safety officers, facility managers, and first ' +

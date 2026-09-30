@@ -1,10 +1,9 @@
-import Image from 'next/image';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { Icon, type IconName } from '@/components/ui/icon';
-import { COURSE_CATEGORIES, COURSE_CATEGORY_META } from '@/features/courses/course-category';
 import { WhyTrainSection } from '@/features/marketing/why-train-section';
 import { HowItWorksSection } from '@/features/marketing/how-it-works-section';
+import { TrainingProgramsSection } from '@/features/marketing/training-programs-section';
 import { DashboardPreviewSection } from '@/features/marketing/dashboard-preview-section';
 import { StatsSection } from '@/features/marketing/stats-section';
 import { TestimonialsSection } from '@/features/marketing/testimonials-section';
@@ -18,8 +17,6 @@ const TRAINING_MODES: { icon: IconName; title: string; description: string }[] =
   { icon: 'classroom', title: 'Classroom Training', description: 'Interactive In-Person Learning' },
   { icon: 'instructor', title: 'Instructor-Led Training', description: 'Expert Instructors, Real-World Experience' },
 ];
-
-const TRAINING_PROGRAMS = COURSE_CATEGORIES.map((category) => ({ category, ...COURSE_CATEGORY_META[category] }));
 
 const COMPLIANCE_HIGHLIGHTS: { icon: IconName; title: string; description: string }[] = [
   {
@@ -104,45 +101,7 @@ export default async function HomePage() {
       <WhyTrainSection />
       <HowItWorksSection />
 
-      <section id="courses" className="bg-slate-50 py-16">
-        <div className="mx-auto max-w-7xl px-4">
-          <h2 className="text-center text-2xl font-extrabold tracking-wide text-navy-900">
-            TRAINING PROGRAMS &amp; CERTIFICATIONS
-          </h2>
-          <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-5">
-            {TRAINING_PROGRAMS.map((trainingProgram) => (
-              <div
-                key={trainingProgram.category}
-                className="flex flex-col overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm"
-              >
-                <div className="relative aspect-[4/3] w-full">
-                  <Image
-                    src={trainingProgram.image}
-                    alt={trainingProgram.programTitle}
-                    fill
-                    sizes="(min-width: 1024px) 20vw, (min-width: 640px) 50vw, 100vw"
-                    className="object-cover"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-navy-950/70 via-navy-950/0 to-navy-950/0" />
-                  <span className="absolute bottom-3 left-3 flex h-10 w-10 items-center justify-center rounded-full bg-navy-900 text-gold-400 ring-2 ring-white">
-                    <Icon name={trainingProgram.icon} className="h-5 w-5" />
-                  </span>
-                </div>
-                <div className="flex flex-1 flex-col p-5">
-                  <h3 className="text-sm font-bold text-navy-900">{trainingProgram.programTitle.toUpperCase()}</h3>
-                  <p className="mt-2 flex-1 text-xs leading-relaxed text-slate-600">{trainingProgram.tagline}</p>
-                  <Link
-                    href={`/programs/${trainingProgram.urlSlug}`}
-                    className="mt-4 text-xs font-bold text-navy-800 hover:text-gold-600"
-                  >
-                    LEARN MORE &raquo;
-                  </Link>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      <TrainingProgramsSection />
 
       <DashboardPreviewSection />
 
