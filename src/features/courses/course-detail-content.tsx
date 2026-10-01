@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Icon } from '@/components/ui/icon';
 import { ProgressBar } from '@/components/ui/progress-bar';
 import { EnrollButton } from '@/features/enrollments/enroll-button';
+import { CheckoutButton } from '@/features/payments/checkout-button';
 
 function formatCoursePrice(priceAmountMinor: number, currency: string): string {
   if (priceAmountMinor === 0) return 'Free';
@@ -126,7 +127,12 @@ export async function CourseDetailContent({ courseSlug, basePath }: CourseDetail
                 <EnrollButton courseSlug={courseRecord.slug} />
               </div>
             ) : (
-              <p className="mt-4 text-sm text-slate-500">Paid checkout is coming soon. Contact us to enroll in this program.</p>
+              <div className="mt-4">
+                <CheckoutButton
+                  courseSlug={courseRecord.slug}
+                  priceLabel={formatCoursePrice(courseRecord.priceAmountMinor, courseRecord.currency)}
+                />
+              </div>
             )
           ) : (
             <Link

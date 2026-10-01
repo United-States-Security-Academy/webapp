@@ -14,8 +14,6 @@ const REQUIRED_PROFILE_FIELDS = [
   'legalName',
   'governmentIdType',
   'governmentIdValue',
-  'gender',
-  'dateOfBirth',
   'phoneNumber',
   'country',
   'state',

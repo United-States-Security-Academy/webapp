@@ -8,24 +8,12 @@ import { Input } from '@/components/ui/input';
 import type { StudentProfile } from '@/db/schema/student-profiles';
 
 type GovernmentIdType = NonNullable<StudentProfile['governmentIdType']>;
-type Gender = NonNullable<StudentProfile['gender']>;
 
 const GOVERNMENT_ID_LABEL: Record<string, string> = {
   ssnLastFour: 'Last 4 digits of SSN',
   texasDriversLicense: 'Texas Driver License number',
   texasIdCard: 'Texas Identification Card number',
 };
-
-const GENDER_LABEL: Record<string, string> = {
-  male: 'Male',
-  female: 'Female',
-  preferNotToSay: 'Prefer not to say',
-};
-
-function formatDateOfBirth(dateOfBirth: string | null | undefined): string | null {
-  if (!dateOfBirth) return null;
-  return new Date(`${dateOfBirth}T00:00:00`).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
-}
 
 function ProfileSummaryField({ label, value }: { label: string; value: string | null | undefined }) {
   return (
@@ -42,8 +30,6 @@ export function ProfileForm({ profile, hasSavedProfile }: { profile: StudentProf
   const [legalName, setLegalName] = useState(profile?.legalName ?? '');
   const [governmentIdType, setGovernmentIdType] = useState(profile?.governmentIdType ?? 'ssnLastFour');
   const [governmentIdValue, setGovernmentIdValue] = useState(profile?.governmentIdValue ?? '');
-  const [gender, setGender] = useState(profile?.gender ?? 'preferNotToSay');
-  const [dateOfBirth, setDateOfBirth] = useState(profile?.dateOfBirth ?? '');
   const [phoneNumber, setPhoneNumber] = useState(profile?.phoneNumber ?? '');
   const [country, setCountry] = useState(profile?.country ?? 'United States');
   const [state, setState] = useState(profile?.state ?? '');
@@ -60,8 +46,6 @@ export function ProfileForm({ profile, hasSavedProfile }: { profile: StudentProf
       legalName,
       governmentIdType: governmentIdType as StudentProfile['governmentIdType'],
       governmentIdValue,
-      gender: gender as StudentProfile['gender'],
-      dateOfBirth,
       phoneNumber,
       country,
       state,
@@ -93,8 +77,6 @@ export function ProfileForm({ profile, hasSavedProfile }: { profile: StudentProf
             label={GOVERNMENT_ID_LABEL[profile?.governmentIdType ?? 'ssnLastFour'] ?? 'Government ID'}
             value={profile?.governmentIdValue}
           />
-          <ProfileSummaryField label="Gender" value={profile?.gender ? GENDER_LABEL[profile.gender] : null} />
-          <ProfileSummaryField label="Date of birth" value={formatDateOfBirth(profile?.dateOfBirth)} />
           <ProfileSummaryField label="Phone number" value={profile?.phoneNumber} />
           <ProfileSummaryField label="Country" value={profile?.country} />
           <ProfileSummaryField label="State" value={profile?.state} />
@@ -143,26 +125,6 @@ export function ProfileForm({ profile, hasSavedProfile }: { profile: StudentProf
       <p className="-mt-2 text-xs text-slate-400">
         Used only to verify your identity on your certification. Never shown publicly.
       </p>
-
-      <div className="grid gap-3 sm:grid-cols-[1fr_1fr]">
-        <div>
-          <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-slate-600">Gender</label>
-          <select
-            value={gender ?? 'preferNotToSay'}
-            onChange={(changeEvent) => setGender(changeEvent.target.value as Gender)}
-            className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
-            required
-          >
-            <option value="male">Male</option>
-            <option value="female">Female</option>
-            <option value="preferNotToSay">Prefer not to say</option>
-          </select>
-        </div>
-        <div>
-          <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-slate-600">Date of birth</label>
-          <Input type="date" value={dateOfBirth ?? ''} onChange={(changeEvent) => setDateOfBirth(changeEvent.target.value)} required />
-        </div>
-      </div>
 
       <div>
         <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-slate-600">Phone number</label>

@@ -1,7 +1,5 @@
-import { pgTable, uuid, text, date, timestamp, pgEnum } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, text, timestamp, pgEnum } from 'drizzle-orm/pg-core';
 import { users } from './users';
-
-export const genderEnum = pgEnum('gender', ['male', 'female', 'preferNotToSay']);
 
 // The registration authority accepts exactly one of these three as proof of identity —
 // modeled as a type + value pair rather than three separate nullable columns.
@@ -17,8 +15,6 @@ export const studentProfiles = pgTable('student_profiles', {
   legalName: text('legal_name'),
   governmentIdType: governmentIdTypeEnum('government_id_type'),
   governmentIdValue: text('government_id_value'),
-  gender: genderEnum('gender'),
-  dateOfBirth: date('date_of_birth', { mode: 'string' }),
   phoneNumber: text('phone_number'),
   country: text('country'),
   state: text('state'),

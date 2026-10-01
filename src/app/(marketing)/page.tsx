@@ -42,37 +42,41 @@ export default async function HomePage() {
 
   return (
     <>
-      <section className="relative isolate flex min-h-[560px] items-center overflow-hidden bg-navy-950 text-white sm:min-h-[640px] lg:min-h-[760px]">
-        <video
-          src="/Trainingvid.mp4"
-          poster="/heroimge.png"
-          autoPlay
-          muted
-          loop
-          playsInline
-          preload="auto"
-          aria-hidden="true"
-          className="absolute inset-0 h-full w-full object-cover object-center"
-        />
-        <div className="absolute inset-0 bg-gradient-to-r from-navy-950 via-navy-950/75 to-navy-950/10" />
-        <div className="relative mx-auto grid w-full max-w-7xl gap-10 px-4 py-16 lg:grid-cols-[3fr_2fr] lg:items-center">
+      <section className="relative isolate overflow-hidden bg-navy-950 text-white lg:flex lg:min-h-[640px] lg:items-center xl:min-h-[760px]">
+        <div className="relative aspect-video w-full lg:absolute lg:inset-0 lg:aspect-auto lg:h-full">
+          <video
+            src="/Trainingvid.mp4"
+            poster="/heroimge.png"
+            autoPlay
+            muted
+            loop
+            playsInline
+            preload="auto"
+            aria-hidden="true"
+            className="absolute inset-0 h-full w-full object-cover object-center"
+          />
+          <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-navy-950 to-transparent lg:hidden" />
+          <div className="absolute inset-0 hidden bg-gradient-to-r from-navy-950 via-navy-950/75 to-navy-950/10 lg:block" />
+        </div>
+
+        <div className="relative mx-auto grid w-full max-w-7xl gap-8 px-4 py-10 sm:px-6 sm:py-14 lg:grid-cols-[3fr_2fr] lg:items-center lg:gap-10 lg:px-4 lg:py-16">
           <div>
-            <h1 className="text-3xl font-extrabold leading-tight sm:text-4xl lg:text-5xl">
+            <h1 className="text-2xl font-extrabold leading-tight sm:text-4xl lg:text-5xl">
               PROFESSIONAL TRAINING,
               <br />
               OPERATIONAL EXCELLENCE.
             </h1>
-            <p className="mt-4 text-lg font-semibold tracking-wide text-gold-400">
+            <p className="mt-3 text-base font-semibold tracking-wide text-gold-400 sm:mt-4 sm:text-lg">
               TRAINING &amp; CERTIFICATION FOR THOSE WHO PROTECT, SERVE &amp; LEAD.
             </p>
-            <p className="mt-6 max-w-xl text-sm leading-relaxed text-slate-300">
+            <p className="mt-4 max-w-xl text-sm leading-relaxed text-slate-300 sm:mt-6">
               United States Security Academy provides web-based, classroom, and
               instructor-led training and certification programs for military
               personnel, law enforcement officers, corrections professionals,
               security personnel, and safety professionals.
             </p>
 
-            <div className="mt-10 grid gap-6 sm:grid-cols-3">
+            <div className="mt-8 grid gap-6 sm:mt-10 sm:grid-cols-3">
               {TRAINING_MODES.map((trainingMode) => (
                 <div key={trainingMode.title} className="flex items-start gap-3">
                   <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-gold-500 text-gold-400">
@@ -87,10 +91,10 @@ export default async function HomePage() {
             </div>
           </div>
 
-          <div className="flex justify-center lg:justify-end">
+          <div className="mt-8 flex justify-center lg:mt-0 lg:justify-end">
             <Link
               href="/courses"
-              className="inline-flex items-center gap-2 rounded-md bg-gold-500 px-8 py-4 text-sm font-bold tracking-wide text-navy-950 hover:bg-gold-400"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-gold-500 px-8 py-4 text-sm font-bold tracking-wide text-navy-950 hover:bg-gold-400 sm:w-auto"
             >
               ENROLL NOW <span aria-hidden>&rarr;</span>
             </Link>

@@ -13,8 +13,8 @@ const envSchema = z.object({
   CLOUDFLARE_STREAM_SIGNING_KEY_PEM: z.string().min(1),
   CLOUDFLARE_STREAM_WEBHOOK_SECRET: z.string().min(1),
 
-  // Optional: paid checkout isn't built yet (nothing in the codebase reads these), so requiring
-  // them would fail the whole app's boot in any environment that hasn't set them.
+  // Optional so environments without Stripe configured (local dev before test keys are set, CI)
+  // still boot — the checkout action and webhook route both fail gracefully if these are unset.
   STRIPE_SECRET_KEY: z.string().min(1).optional(),
   STRIPE_WEBHOOK_SECRET: z.string().min(1).optional(),
 
