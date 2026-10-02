@@ -12,11 +12,8 @@ import { Icon } from '@/components/ui/icon';
 import { ProgressBar } from '@/components/ui/progress-bar';
 import { EnrollButton } from '@/features/enrollments/enroll-button';
 import { CheckoutButton } from '@/features/payments/checkout-button';
-
-function formatCoursePrice(priceAmountMinor: number, currency: string): string {
-  if (priceAmountMinor === 0) return 'Free';
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(priceAmountMinor / 100);
-}
+import { CourseDetailOverview } from '@/features/courses/course-detail-overview';
+import { formatCoursePrice } from '@/features/courses/format-course-price';
 
 interface CourseDetailContentProps {
   courseSlug: string;
@@ -52,7 +49,16 @@ export async function CourseDetailContent({ courseSlug, basePath }: CourseDetail
   const hasPassedAssessment = isCourseComplete && authenticatedUser ? await hasPassedRequiredAssessment(authenticatedUser.userId, courseRecord.id) : false;
 
   return (
-    <div className="mx-auto grid max-w-5xl gap-8 px-4 lg:grid-cols-[2fr_1fr]">
+    <>
+      {courseRecord.detailContent && (
+        <div className="mx-auto mb-10 max-w-5xl px-4">
+          <CourseDetailOverview
+            detailContent={courseRecord.detailContent}
+            priceLabel={formatCoursePrice(courseRecord.priceAmountMinor, courseRecord.currency)}
+          />
+        </div>
+      )}
+      <div className="mx-auto grid max-w-5xl gap-8 px-4 lg:grid-cols-[2fr_1fr]">
       <div>
         <h2 className="text-lg font-bold text-slate-900">Course content</h2>
         <div className="mt-4 flex flex-col gap-4">
@@ -144,6 +150,7 @@ export async function CourseDetailContent({ courseSlug, basePath }: CourseDetail
           )}
         </Card>
       </div>
-    </div>
+      </div>
+    </>
   );
 }

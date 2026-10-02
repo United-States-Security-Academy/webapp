@@ -36,7 +36,7 @@ export function SiteFooter() {
           <h3 className="text-sm font-bold tracking-wide text-gold-400">CONTACT US</h3>
           <ul className="mt-3 flex flex-col gap-2 text-sm text-slate-300">
             <li className="flex items-center gap-2">
-              <Icon name="phone" className="h-4 w-4" /> (832) 272-0151
+              <Icon name="phone" className="h-4 w-4" /> (832) 260-6092
             </li>
             <li className="flex items-center gap-2">
               <Icon name="mail" className="h-4 w-4" /> info@ussa-academy.com

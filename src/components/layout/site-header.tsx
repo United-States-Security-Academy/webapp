@@ -55,7 +55,7 @@ export function SiteHeader({ authenticatedUser }: { authenticatedUser: Authentic
         <div className="flex items-center gap-4">
           <span className="flex items-center gap-1">
             <Icon name="phone" className="h-3.5 w-3.5" />
-            (832) 272-0151
+            (832) 260-6092
           </span>
           <span className="flex items-center gap-1">
             <Icon name="mail" className="h-3.5 w-3.5" />
