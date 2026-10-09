@@ -66,6 +66,8 @@ export function PdfViewer({ fileUrl }: { fileUrl: string }) {
 
         // Render at the scroll area's actual available width (minus its padding) so pages
         // never overflow on narrow phone screens, capped at a comfortable reading width on desktop.
+        // The scroll area reserves its scrollbar gutter up front, so this width doesn't shrink once
+        // the pages load and the scrollbar appears.
         const availableWidth = (scrollAreaRef.current?.clientWidth ?? MAX_PAGE_RENDER_WIDTH + 32) - 32;
         const fitWidth = Math.max(MIN_PAGE_RENDER_WIDTH, Math.min(MAX_PAGE_RENDER_WIDTH, availableWidth));
 
@@ -141,9 +143,13 @@ export function PdfViewer({ fileUrl }: { fileUrl: string }) {
         const page = await pdfDocument.getPage(pageNumber);
         if (isCancelled) return;
 
+        // Pick a whole-pixel CSS width first and derive the scale from it, so the canvas backing
+        // store is exactly outputScale x its displayed size — any mismatch makes the browser
+        // resample the bitmap, which visibly softens text.
         const unscaledViewport = page.getViewport({ scale: 1 });
-        const scale = pageRenderWidth / unscaledViewport.width;
-        const viewport = page.getViewport({ scale });
+        const cssWidth = Math.round(pageRenderWidth);
+        const viewport = page.getViewport({ scale: cssWidth / unscaledViewport.width });
+        const cssHeight = Math.round(viewport.height);
 
         const pageWrapper = document.createElement('div');
         pageWrapper.dataset.pageNumber = String(pageNumber);
@@ -151,13 +157,14 @@ export function PdfViewer({ fileUrl }: { fileUrl: string }) {
 
         // Render at the display's actual pixel density, not just CSS pixels — otherwise the
         // canvas backing store is lower-resolution than the screen and gets blurrily upscaled
-        // on any HiDPI display (Retina, or Windows display scaling above 100%).
+        // on any HiDPI display (Retina, or Windows display scaling above 100%). No max-width: a
+        // page wider than the scroll area scrolls sideways rather than being squeezed (and blurred).
         const canvas = document.createElement('canvas');
-        canvas.className = 'max-w-full shadow-md';
-        canvas.width = Math.floor(viewport.width * outputScale);
-        canvas.height = Math.floor(viewport.height * outputScale);
-        canvas.style.width = `${Math.floor(viewport.width)}px`;
-        canvas.style.height = `${Math.floor(viewport.height)}px`;
+        canvas.className = 'block shadow-md';
+        canvas.width = Math.round(cssWidth * outputScale);
+        canvas.height = Math.round(cssHeight * outputScale);
+        canvas.style.width = `${cssWidth}px`;
+        canvas.style.height = `${cssHeight}px`;
         pageWrapper.appendChild(canvas);
         pagesContainer.appendChild(pageWrapper);
 
@@ -172,8 +179,8 @@ export function PdfViewer({ fileUrl }: { fileUrl: string }) {
         // the page's text selectable/copyable, since the canvas itself is just pixels.
         const textLayerDiv = document.createElement('div');
         textLayerDiv.className = 'textLayer';
-        textLayerDiv.style.width = `${Math.floor(viewport.width)}px`;
-        textLayerDiv.style.height = `${Math.floor(viewport.height)}px`;
+        textLayerDiv.style.width = `${cssWidth}px`;
+        textLayerDiv.style.height = `${cssHeight}px`;
         pageWrapper.appendChild(textLayerDiv);
         try {
           const textContent = await page.getTextContent();
@@ -296,14 +303,14 @@ export function PdfViewer({ fileUrl }: { fileUrl: string }) {
           <div ref={thumbnailListRef} className="flex flex-col gap-2" />
         </div>
 
-        <div ref={scrollAreaRef} className="relative flex-1 overflow-y-auto bg-slate-100 p-4">
+        <div ref={scrollAreaRef} className="relative flex-1 overflow-auto bg-slate-100 p-4 [scrollbar-gutter:stable]">
           {loadState === 'loading' && (
             <div className="flex items-center justify-center gap-2 py-12 text-sm text-slate-500">
               <Spinner className="h-4 w-4" /> Loading document...
             </div>
           )}
           {loadState === 'error' && <p className="py-12 text-center text-sm text-red-600">Failed to load the PDF.</p>}
-          <div ref={pagesContainerRef} className={`flex flex-col items-center ${loadState === 'ready' ? '' : 'hidden'}`} />
+          <div ref={pagesContainerRef} className={`mx-auto flex w-fit flex-col items-center ${loadState === 'ready' ? '' : 'hidden'}`} />
         </div>
       </div>
     </div>

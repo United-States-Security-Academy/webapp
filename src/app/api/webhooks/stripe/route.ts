@@ -1,10 +1,11 @@
 import type Stripe from 'stripe';
 import { db } from '@/db/client';
-import { enrollments, payments } from '@/db/schema';
+import { discountCodeRedemptions, enrollments, payments } from '@/db/schema';
 import { env } from '@/env';
 import { ApiError, toApiErrorResponse } from '@/api-response/api-error';
 import { API_ERROR_CODE } from '@/api-response/api-error-codes';
 import { getStripeClient } from '@/features/payments/stripe-client';
+import { getDiscountCodeById } from '@/features/discounts/discount-queries';
 
 export async function POST(request: Request) {
   try {
@@ -30,6 +31,7 @@ export async function POST(request: Request) {
       const checkoutSession = event.data.object as Stripe.Checkout.Session;
       const userId = checkoutSession.metadata?.userId;
       const courseId = checkoutSession.metadata?.courseId;
+      const discountCodeId = checkoutSession.metadata?.discountCodeId;
 
       if (userId && courseId) {
         // Idempotent on (provider, providerEventId) — Stripe retries webhooks, this must be safe to replay.
@@ -48,6 +50,12 @@ export async function POST(request: Request) {
           .onConflictDoNothing({ target: [payments.provider, payments.providerEventId] });
 
         await db.insert(enrollments).values({ userId, courseId }).onConflictDoNothing();
+
+        // The redemption is only recorded once payment succeeds, so an abandoned checkout doesn't
+        // use up the learner's one-time code. Skipped if the code was deleted in the meantime.
+        if (discountCodeId && (await getDiscountCodeById(discountCodeId))) {
+          await db.insert(discountCodeRedemptions).values({ discountCodeId, userId, courseId }).onConflictDoNothing();
+        }
       }
     }
 

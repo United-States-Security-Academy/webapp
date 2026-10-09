@@ -8,3 +8,4 @@ export * from './lesson-progress';
 export * from './assessments';
 export * from './student-profiles';
 export * from './lesson-audio-transcripts';
+export * from './discount-codes';

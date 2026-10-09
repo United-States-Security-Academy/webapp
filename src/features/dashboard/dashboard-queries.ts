@@ -1,3 +1,6 @@
+import { and, desc, eq, notInArray } from 'drizzle-orm';
+import { db } from '@/db/client';
+import { courses, users } from '@/db/schema';
 import { listEnrollmentsByUser } from '@/features/enrollments/enrollment-queries';
 import { getCourseContentTree } from '@/features/courses/course-content-queries';
 import {
@@ -108,4 +111,28 @@ export async function getRecentActivity(
   return [...enrollmentEvents, ...lessonEvents, ...certificateEvents]
     .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
     .slice(0, limit);
+}
+
+export interface RecommendedCourse {
+  course: Course;
+  instructorName: string;
+}
+
+// Published courses the learner isn't enrolled in yet, newest first.
+export async function listRecommendedCourses(
+  enrolledCourses: EnrolledCourseSummary[],
+  limit = 4,
+): Promise<RecommendedCourse[]> {
+  const enrolledCourseIds = enrolledCourses.map((entry) => entry.course.id);
+  const conditions = [eq(courses.status, 'published')];
+  if (enrolledCourseIds.length > 0) conditions.push(notInArray(courses.id, enrolledCourseIds));
+
+  const rows = await db
+    .select({ course: courses, instructorName: users.displayName })
+    .from(courses)
+    .innerJoin(users, eq(users.id, courses.ownerId))
+    .where(and(...conditions))
+    .orderBy(desc(courses.createdAt))
+    .limit(limit);
+  return rows;
 }

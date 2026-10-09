@@ -2,7 +2,7 @@ import { getAuthenticatedUserFromSession } from '@/features/auth/get-authenticat
 import { listAllUsers } from '@/features/admin/user-queries';
 import { UserRoleSelect } from '@/features/admin/user-role-select';
 import { DeleteUserButton } from '@/features/admin/delete-user-button';
-import { DashboardSearchForm } from '@/features/dashboard/dashboard-search-form';
+import Link from 'next/link';
 
 export default async function AdminUsersPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
   const { q: searchQuery } = await searchParams;
@@ -10,16 +10,24 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: P
   const userList = await listAllUsers(searchQuery);
 
   return (
-    <main className="mx-auto max-w-5xl px-4 py-10">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-extrabold tracking-wide text-navy-900">USERS</h1>
-          <p className="mt-1 text-sm text-slate-500">Promote a learner to instructor, or grant admin access.</p>
-        </div>
-        <DashboardSearchForm targetPath="/admin/users" placeholder="Search by name or email..." />
+    <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6">
+      <div>
+        <h1 className="text-xl font-extrabold text-navy-900">Users</h1>
+        <p className="mt-1 text-sm text-slate-500">
+          {searchQuery ? (
+            <>
+              Showing results for &ldquo;{searchQuery}&rdquo; &middot;{' '}
+              <Link href="/admin/users" className="font-semibold text-navy-800 hover:text-gold-600">
+                Clear search
+              </Link>
+            </>
+          ) : (
+            'Promote a learner to instructor, or grant admin access.'
+          )}
+        </p>
       </div>
 
-      <div className="mt-6 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+      <div className="mt-6 overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
         <table className="w-full text-left text-sm">
           <thead>
             <tr className="border-b border-slate-100 text-xs font-bold uppercase tracking-wide text-slate-500">

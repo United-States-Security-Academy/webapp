@@ -1,63 +1,66 @@
 import Link from 'next/link';
 import { Icon } from '@/components/ui/icon';
-import { RadialProgress } from '@/components/ui/radial-progress';
+import { COURSE_CATEGORY_META } from '@/features/courses/course-category';
 import type { EnrolledCourseSummary } from './dashboard-queries';
 
 export function EnrolledCourseCard({ course, progress, nextLessonSlug, hasPassedRequiredAssessment }: EnrolledCourseSummary) {
   const isCompleted = progress.completedAt !== null;
   const isCertified = isCompleted && hasPassedRequiredAssessment;
   const needsAssessment = isCompleted && !hasPassedRequiredAssessment;
-  const continueHref = needsAssessment
-    ? `/dashboard/courses/${course.slug}/assessment`
-    : nextLessonSlug
-      ? `/dashboard/courses/${course.slug}/lessons/${nextLessonSlug}`
-      : `/dashboard/courses/${course.slug}`;
+  const continueHref = isCertified
+    ? `/dashboard/certificates/${course.slug}`
+    : needsAssessment
+      ? `/dashboard/courses/${course.slug}/assessment`
+      : nextLessonSlug
+        ? `/dashboard/courses/${course.slug}/lessons/${nextLessonSlug}`
+        : `/dashboard/courses/${course.slug}`;
+  const actionLabel = isCertified
+    ? 'View certificate'
+    : needsAssessment
+      ? 'Take final assessment'
+      : progress.completedLessons > 0
+        ? 'Resume course'
+        : 'Start course';
   const percentage = progress.totalLessons === 0 ? 0 : Math.round((progress.completedLessons / progress.totalLessons) * 100);
+  const categoryMeta = COURSE_CATEGORY_META[course.category];
 
   return (
-    <Link href={continueHref} className="block overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
-      <div className="aspect-video w-full bg-navy-900">
-        {course.thumbnailUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element -- external Supabase Storage URL
-          <img src={course.thumbnailUrl} alt="" className="h-full w-full object-cover" />
-        ) : (
-          <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-navy-900 to-navy-950">
-            <Icon name="bookOpen" className="h-10 w-10 text-gold-400/60" />
-          </div>
-        )}
-      </div>
-
-      <div className="p-4">
-        <p className="line-clamp-2 font-bold text-navy-900">{course.title}</p>
-
-        <div className="mt-3 flex items-center justify-between gap-3">
-          <div className="flex flex-col gap-1.5 text-xs text-slate-500">
-            <span className="flex items-center gap-1.5">
-              <Icon name="document" className="h-3.5 w-3.5" />
-              {progress.totalLessons} lesson{progress.totalLessons === 1 ? '' : 's'}
-            </span>
-            <span className="flex items-center gap-1.5">
-              <Icon name="checkCircle" className="h-3.5 w-3.5" />
-              {progress.completedLessons} completed
-            </span>
-          </div>
-          <RadialProgress percentage={percentage} size={52} strokeWidth={4} />
+    <div className="flex flex-col rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
+      <div className="flex items-start gap-3">
+        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-navy-900 text-gold-400">
+          <Icon name={categoryMeta.icon} className="h-5 w-5" />
+        </span>
+        <div className="min-w-0">
+          <p className="line-clamp-2 font-bold leading-snug text-navy-900">{course.title}</p>
+          <p className="mt-0.5 text-[11px] font-semibold uppercase tracking-wide text-slate-400">{categoryMeta.label}</p>
         </div>
-
-        <p
-          className={`mt-3 rounded-full px-3 py-1.5 text-center text-xs font-semibold ${
-            isCertified ? 'bg-gold-500/10 text-gold-600' : needsAssessment ? 'bg-amber-50 text-amber-700' : 'bg-slate-100 text-slate-600'
-          }`}
-        >
-          {isCertified
-            ? 'Certificate earned'
-            : needsAssessment
-              ? 'Take final assessment'
-              : progress.completedLessons > 0
-                ? 'Continue learning'
-                : 'Start course'}
-        </p>
       </div>
-    </Link>
+
+      <div
+        className="mt-4 h-2 overflow-hidden rounded-full bg-slate-100"
+        role="progressbar"
+        aria-valuenow={percentage}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-label={`${course.title} progress`}
+      >
+        <div className="h-full rounded-full bg-gold-500" style={{ width: `${percentage}%` }} />
+      </div>
+
+      <div className="mt-2 flex items-center justify-between text-xs text-slate-500">
+        <span className="flex items-center gap-1.5">
+          <Icon name="document" className="h-3.5 w-3.5" />
+          {progress.completedLessons}/{progress.totalLessons} lessons
+        </span>
+        <span className="font-semibold text-navy-900">{percentage}%</span>
+      </div>
+
+      <Link
+        href={continueHref}
+        className="mt-4 inline-flex items-center gap-1 self-start text-xs font-bold text-gold-600 hover:text-navy-800"
+      >
+        {actionLabel} &rarr;
+      </Link>
+    </div>
   );
 }
