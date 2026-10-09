@@ -1,6 +1,6 @@
 'use server';
 
-import { eq } from 'drizzle-orm';
+import { and, eq, ne } from 'drizzle-orm';
 import { db } from '@/db/client';
 import { courses } from '@/db/schema';
 import { ApiError } from '@/api-response/api-error';
@@ -12,7 +12,7 @@ import { slugify } from '@/slugify';
 import type { Course, NewCourse } from './course-types';
 
 type CreateCourseInput = Pick<NewCourse, 'slug' | 'title' | 'summary' | 'category' | 'priceAmountMinor' | 'currency'>;
-type UpdateCourseInput = Partial<Pick<NewCourse, 'title' | 'summary' | 'category' | 'priceAmountMinor' | 'currency'>>;
+type UpdateCourseInput = Partial<Pick<NewCourse, 'slug' | 'title' | 'summary' | 'category' | 'priceAmountMinor' | 'currency'>>;
 
 // Each action below wraps its body in a try/catch that converts our own ApiError (an
 // intentional, safe-to-show validation error) into a returned message — Next.js redacts thrown
@@ -41,6 +41,17 @@ export async function updateCourse(courseId: string, updates: UpdateCourseInput)
   try {
     const authenticatedUser = await requireAuthenticatedUserFromSession();
     await requireCourseOwnership(authenticatedUser, courseId);
+
+    if (updates.slug !== undefined) {
+      const slug = slugify(updates.slug);
+      if (!slug) return { success: false, error: 'Slug must contain at least one letter or number.' };
+      const [conflictingCourse] = await db
+        .select({ id: courses.id })
+        .from(courses)
+        .where(and(eq(courses.slug, slug), ne(courses.id, courseId)));
+      if (conflictingCourse) return { success: false, error: 'Another course already uses this slug.' };
+      updates = { ...updates, slug };
+    }
 
     const [updatedCourse] = await db.update(courses).set(updates).where(eq(courses.id, courseId)).returning();
     if (!updatedCourse) return { success: false, error: 'Course not found.' };

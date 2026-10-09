@@ -6,7 +6,9 @@ import { modules } from '@/db/schema';
 import { ApiError } from '@/api-response/api-error';
 import type { ActionResult } from '@/api-response/action-result';
 import { requireAuthenticatedUserFromSession } from '@/features/auth/require-authenticated-user';
+import { API_ERROR_CODE } from '@/api-response/api-error-codes';
 import { requireCourseOwnership } from '@/features/courses/require-course-ownership';
+import { getModuleById } from './module-queries';
 
 const MODULE_POSITION_GAP = 10;
 
@@ -31,6 +33,44 @@ export async function createModule(courseId: string, title: string): Promise<Act
     const [createdModule] = await db.insert(modules).values({ courseId, title, position }).returning();
     if (!createdModule) return { success: false, error: 'Failed to add module.' };
     return { success: true, data: createdModule };
+  } catch (error) {
+    if (error instanceof ApiError) return { success: false, error: error.message };
+    throw error;
+  }
+}
+
+export async function updateModuleTitle(moduleId: string, title: string): Promise<ActionResult<Module>> {
+  try {
+    const authenticatedUser = await requireAuthenticatedUserFromSession();
+    const moduleRecord = await getModuleById(moduleId);
+    if (!moduleRecord) throw new ApiError(404, API_ERROR_CODE.MODULE_NOT_FOUND, 'Module not found.');
+    await requireCourseOwnership(authenticatedUser, moduleRecord.courseId);
+
+    const trimmedTitle = title.trim();
+    if (!trimmedTitle) return { success: false, error: 'Module title cannot be empty.' };
+
+    const [updatedModule] = await db
+      .update(modules)
+      .set({ title: trimmedTitle })
+      .where(eq(modules.id, moduleId))
+      .returning();
+    if (!updatedModule) return { success: false, error: 'Module not found.' };
+    return { success: true, data: updatedModule };
+  } catch (error) {
+    if (error instanceof ApiError) return { success: false, error: error.message };
+    throw error;
+  }
+}
+
+export async function deleteModule(moduleId: string): Promise<ActionResult> {
+  try {
+    const authenticatedUser = await requireAuthenticatedUserFromSession();
+    const moduleRecord = await getModuleById(moduleId);
+    if (!moduleRecord) throw new ApiError(404, API_ERROR_CODE.MODULE_NOT_FOUND, 'Module not found.');
+    await requireCourseOwnership(authenticatedUser, moduleRecord.courseId);
+
+    await db.delete(modules).where(eq(modules.id, moduleId));
+    return { success: true, data: undefined };
   } catch (error) {
     if (error instanceof ApiError) return { success: false, error: error.message };
     throw error;

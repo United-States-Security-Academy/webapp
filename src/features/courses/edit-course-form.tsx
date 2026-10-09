@@ -6,6 +6,7 @@ import { updateCourse } from './course-actions';
 import { COURSE_CATEGORIES, COURSE_CATEGORY_META } from './course-category';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { slugify } from '@/slugify';
 import type { Course, CourseCategory } from './course-types';
 
 function formatDollarPreview(priceInput: string, currency: string): string {
@@ -18,6 +19,7 @@ export function EditCourseForm({ course }: { course: Course }) {
   const router = useRouter();
   const [isEditing, setIsEditing] = useState(false);
   const [title, setTitle] = useState(course.title);
+  const [slug, setSlug] = useState(course.slug);
   const [summary, setSummary] = useState(course.summary ?? '');
   const [category, setCategory] = useState<CourseCategory>(course.category);
   const [priceInput, setPriceInput] = useState((course.priceAmountMinor / 100).toFixed(2));
@@ -30,7 +32,7 @@ export function EditCourseForm({ course }: { course: Course }) {
     setIsSubmitting(true);
     setErrorMessage(null);
     const priceAmountMinor = Math.round((Number.parseFloat(priceInput) || 0) * 100);
-    const result = await updateCourse(course.id, { title, summary, category, priceAmountMinor, currency });
+    const result = await updateCourse(course.id, { title, slug, summary, category, priceAmountMinor, currency });
     if (!result.success) {
       setErrorMessage(result.error);
       setIsSubmitting(false);
@@ -38,6 +40,11 @@ export function EditCourseForm({ course }: { course: Course }) {
     }
     setIsEditing(false);
     setIsSubmitting(false);
+    // This page's URL contains the slug, so a changed slug means the current URL no longer exists.
+    if (result.data.slug !== course.slug) {
+      router.replace(`/instructor/courses/${result.data.slug}`);
+      return;
+    }
     router.refresh();
   }
 
@@ -54,6 +61,14 @@ export function EditCourseForm({ course }: { course: Course }) {
       <div>
         <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-slate-600">Title</label>
         <Input value={title} onChange={(changeEvent) => setTitle(changeEvent.target.value)} required />
+      </div>
+      <div>
+        <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-slate-600">Slug</label>
+        <Input value={slug} onChange={(changeEvent) => setSlug(changeEvent.target.value)} required />
+        <p className="mt-1 text-xs text-slate-400">
+          This course will live at /courses/{slugify(slug) || '...'}
+          {slugify(slug) !== course.slug && ' — links using the old URL will stop working.'}
+        </p>
       </div>
       <div>
         <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-slate-600">Summary</label>

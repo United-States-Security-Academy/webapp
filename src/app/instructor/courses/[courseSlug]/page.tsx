@@ -5,6 +5,8 @@ import { getCourseBySlug } from '@/features/courses/course-queries';
 import { listModulesByCourse } from '@/features/modules/module-queries';
 import { listLessonsByModule } from '@/features/lessons/lesson-queries';
 import { AddModuleForm } from '@/features/modules/add-module-form';
+import { EditModuleTitleForm } from '@/features/modules/edit-module-title-form';
+import { DeleteModuleButton } from '@/features/modules/delete-module-button';
 import { AddLessonForm } from '@/features/lessons/add-lesson-form';
 import { EditCourseForm } from '@/features/courses/edit-course-form';
 import { PublishToggleButton } from '@/features/courses/publish-toggle-button';
@@ -81,7 +83,12 @@ export default async function InstructorCourseDetailPage({
         <div className="mt-4 flex flex-col gap-4">
           {modulesWithLessons.map(({ moduleRecord, moduleLessons }) => (
             <Card key={moduleRecord.id}>
-              <h3 className="font-medium text-slate-900">{moduleRecord.title}</h3>
+              <div className="flex items-start gap-2">
+                <div className="flex-1">
+                  <EditModuleTitleForm key={moduleRecord.title} moduleId={moduleRecord.id} currentTitle={moduleRecord.title} />
+                </div>
+                <DeleteModuleButton moduleId={moduleRecord.id} moduleTitle={moduleRecord.title} />
+              </div>
               <ul className="mt-2 flex flex-col gap-1">
                 {moduleLessons.map((lessonRecord) => (
                   <li key={lessonRecord.id} className="flex items-center gap-2 text-sm text-slate-700">
