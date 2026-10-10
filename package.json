@@ -15,6 +15,7 @@
     "postinstall": "node scripts/copy-pdfjs-assets.cjs && node scripts/copy-tesseract-assets.cjs"
   },
   "dependencies": {
+    "@sentry/nextjs": "10.76.2",
     "@supabase/ssr": "^0.5.1",
     "@supabase/supabase-js": "^2.45.4",
     "drizzle-orm": "^0.36.0",

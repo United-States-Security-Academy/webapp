@@ -1,5 +1,11 @@
 import { PageBanner } from '@/components/layout/page-banner';
 import { Icon, type IconName } from '@/components/ui/icon';
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Training Modes',
+  description: 'Three ways to train with USSA: web-based, classroom and instructor-led training.',
+};
 
 const TRAINING_MODES: { icon: IconName; title: string; description: string; features: string[] }[] = [
   {

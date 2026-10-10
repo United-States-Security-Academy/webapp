@@ -35,5 +35,6 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|mp4)$).*)'],
+  // /monitoring is the Sentry error-report tunnel (see next.config.ts); it needs no session refresh.
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|monitoring|.*\\.(?:svg|png|jpg|jpeg|gif|webp|mp4)$).*)'],
 };

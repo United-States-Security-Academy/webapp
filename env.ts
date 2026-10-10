@@ -19,6 +19,9 @@ const envSchema = z.object({
   STRIPE_WEBHOOK_SECRET: z.string().min(1).optional(),
 
   NEXT_PUBLIC_APP_URL: z.string().url(),
+
+  // Optional: error monitoring stays off until a Sentry project's DSN is set (see src/sentry-options.ts).
+  NEXT_PUBLIC_SENTRY_DSN: z.string().url().optional(),
 });
 
 function loadEnv() {

@@ -1,5 +1,11 @@
 import { PageBanner } from '@/components/layout/page-banner';
 import { Icon, type IconName } from '@/components/ui/icon';
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Contact Us',
+  description: 'Contact USSA about enrollment, group training for your agency, or general questions.',
+};
 
 const CONTACT_DETAILS: { icon: IconName; label: string; value: string }[] = [
   { icon: 'phone', label: 'Phone', value: '(832) 260-6092' },

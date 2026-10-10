@@ -7,6 +7,7 @@ import { Spinner } from '@/components/ui/spinner';
 import './pdf-text-layer.css';
 
 const MAX_PAGE_RENDER_WIDTH = 720;
+const FULLSCREEN_MAX_PAGE_RENDER_WIDTH = 1100;
 const MIN_PAGE_RENDER_WIDTH = 280;
 const THUMBNAIL_WIDTH = 96;
 const ZOOM_STEP_PERCENT = 10;
@@ -15,13 +16,47 @@ const MAX_ZOOM_PERCENT = 200;
 
 type LoadState = 'loading' | 'ready' | 'error';
 
+// The page at a fixed reading point near the top of the view (30% down). Scrolling a page's top to
+// the top of the view always reports that same page back, so restoring a saved page after a
+// re-render or layout change never drifts to the next one.
+function findPageAtReadingPoint(scrollArea: HTMLElement, pagesContainer: HTMLElement): number {
+  const readingPoint = scrollArea.scrollTop + scrollArea.clientHeight * 0.3;
+  let pageNumber = 1;
+  for (const pageWrapper of Array.from(pagesContainer.children) as HTMLElement[]) {
+    if (pageWrapper.offsetTop > readingPoint) break;
+    pageNumber = Number(pageWrapper.dataset.pageNumber) || pageNumber;
+  }
+  return pageNumber;
+}
+
+// Scrolls only the viewer's own scroll area — scrollIntoView would also scroll the surrounding
+// lesson page. offsetTop is relative to the scroll area (its nearest positioned ancestor).
+function scrollPageIntoView(scrollArea: HTMLElement, pagesContainer: HTMLElement, pageNumber: number, behavior: ScrollBehavior) {
+  const target = pagesContainer.querySelector<HTMLElement>(`[data-page-number="${pageNumber}"]`);
+  if (!target) return;
+  scrollArea.scrollTo({ top: pageNumber === 1 ? 0 : target.offsetTop - 16, behavior });
+}
+
+// Render at the scroll area's actual available width (minus its padding) so pages never overflow
+// on narrow phone screens, capped at a comfortable reading width. The scroll area reserves its
+// scrollbar gutter up front, so this width doesn't shrink once the pages load and the scrollbar appears.
+function measureFitWidth(scrollArea: HTMLElement | null, maxWidth: number): number {
+  const availableWidth = (scrollArea?.clientWidth ?? maxWidth + 32) - 32;
+  return Math.max(MIN_PAGE_RENDER_WIDTH, Math.min(maxWidth, availableWidth));
+}
+
 export function PdfViewer({ fileUrl }: { fileUrl: string }) {
+  const rootRef = useRef<HTMLDivElement>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const pagesContainerRef = useRef<HTMLDivElement>(null);
   const thumbnailListRef = useRef<HTMLDivElement>(null);
   const pdfDocumentRef = useRef<PdfjsLib.PDFDocumentProxy | null>(null);
   const pdfjsLibRef = useRef<typeof PdfjsLib | null>(null);
-  const observerRef = useRef<IntersectionObserver | null>(null);
+  const stopPageTrackingRef = useRef<(() => void) | null>(null);
+  // The page the reader is on, kept in a ref so re-rendering (zoom, entering/leaving full screen)
+  // can bring them back to it instead of jumping to page 1.
+  const currentPageRef = useRef(1);
+  const pendingRestorePageRef = useRef<number | null>(null);
 
   const [loadState, setLoadState] = useState<LoadState>('loading');
   const [numPages, setNumPages] = useState(0);
@@ -29,6 +64,7 @@ export function PdfViewer({ fileUrl }: { fileUrl: string }) {
   const [zoomPercent, setZoomPercent] = useState(100);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [baseRenderWidth, setBaseRenderWidth] = useState<number | null>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   // Load the document once per fileUrl — rendering (below) reruns on zoom changes without
   // re-fetching it.
@@ -39,6 +75,7 @@ export function PdfViewer({ fileUrl }: { fileUrl: string }) {
     setPageInputValue('1');
     setZoomPercent(100);
     setBaseRenderWidth(null);
+    currentPageRef.current = 1;
     pdfDocumentRef.current = null;
 
     async function loadDocument() {
@@ -64,12 +101,7 @@ export function PdfViewer({ fileUrl }: { fileUrl: string }) {
         const pdfDocument = await pdfjsLib.getDocument({ data: pdfBytes }).promise;
         if (isCancelled) return;
 
-        // Render at the scroll area's actual available width (minus its padding) so pages
-        // never overflow on narrow phone screens, capped at a comfortable reading width on desktop.
-        // The scroll area reserves its scrollbar gutter up front, so this width doesn't shrink once
-        // the pages load and the scrollbar appears.
-        const availableWidth = (scrollAreaRef.current?.clientWidth ?? MAX_PAGE_RENDER_WIDTH + 32) - 32;
-        const fitWidth = Math.max(MIN_PAGE_RENDER_WIDTH, Math.min(MAX_PAGE_RENDER_WIDTH, availableWidth));
+        const fitWidth = measureFitWidth(scrollAreaRef.current, MAX_PAGE_RENDER_WIDTH);
 
         pdfDocumentRef.current = pdfDocument;
         setNumPages(pdfDocument.numPages);
@@ -93,28 +125,33 @@ export function PdfViewer({ fileUrl }: { fileUrl: string }) {
     if (!baseRenderWidth || !pdfDocument || !pdfjsLib) return;
     let isCancelled = false;
 
-    function setupPageObserver() {
-      observerRef.current?.disconnect();
+    function setupPageTracking() {
+      stopPageTrackingRef.current?.();
       const scrollArea = scrollAreaRef.current;
       const pagesContainer = pagesContainerRef.current;
       if (!scrollArea || !pagesContainer) return;
 
-      const observer = new IntersectionObserver(
-        (entries) => {
-          const mostVisible = entries.filter((entry) => entry.isIntersecting).sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
-          if (!mostVisible) return;
-          const pageNumber = Number((mostVisible.target as HTMLElement).dataset.pageNumber);
-          if (pageNumber) {
-            setPageInputValue(String(pageNumber));
-            highlightThumbnail(pageNumber);
-          }
-        },
-        { root: scrollArea, threshold: [0.25, 0.5, 0.75] },
-      );
+      let animationFrame = 0;
+      function updateCurrentPage() {
+        animationFrame = 0;
+        if (!scrollArea || !pagesContainer) return;
+        const pageNumber = findPageAtReadingPoint(scrollArea, pagesContainer);
+        if (pageNumber === currentPageRef.current) return;
+        currentPageRef.current = pageNumber;
+        setPageInputValue(String(pageNumber));
+        highlightThumbnail(pageNumber);
+      }
+      function handleScroll() {
+        if (!animationFrame) animationFrame = requestAnimationFrame(updateCurrentPage);
+      }
 
-      Array.from(pagesContainer.children).forEach((child) => observer.observe(child));
-      observerRef.current = observer;
-      highlightThumbnail(1);
+      scrollArea.addEventListener('scroll', handleScroll, { passive: true });
+      stopPageTrackingRef.current = () => {
+        scrollArea.removeEventListener('scroll', handleScroll);
+        cancelAnimationFrame(animationFrame);
+      };
+      setPageInputValue(String(currentPageRef.current));
+      highlightThumbnail(currentPageRef.current);
     }
 
     function highlightThumbnail(pageNumber: number) {
@@ -136,6 +173,7 @@ export function PdfViewer({ fileUrl }: { fileUrl: string }) {
       if (thumbnailList) thumbnailList.innerHTML = '';
 
       setLoadState('loading');
+      const pageToRestore = currentPageRef.current;
       const pageRenderWidth = baseRenderWidth * (zoomPercent / 100);
       const outputScale = window.devicePixelRatio || 1;
 
@@ -217,20 +255,87 @@ export function PdfViewer({ fileUrl }: { fileUrl: string }) {
       }
 
       if (isCancelled) return;
+      // The pages container is still display:none until React applies the 'ready' state, so the
+      // scroll position is restored by the effect below once the pages are actually laid out.
+      pendingRestorePageRef.current = pageToRestore;
       setLoadState('ready');
-      setupPageObserver();
+      setupPageTracking();
     }
 
     renderPages(pdfDocument, baseRenderWidth, pdfjsLib);
     return () => {
       isCancelled = true;
-      observerRef.current?.disconnect();
+      stopPageTrackingRef.current?.();
     };
   }, [baseRenderWidth, zoomPercent]);
 
+  useEffect(() => {
+    if (loadState !== 'ready' || pendingRestorePageRef.current === null) return;
+    const pageNumber = pendingRestorePageRef.current;
+    pendingRestorePageRef.current = null;
+    if (scrollAreaRef.current && pagesContainerRef.current) {
+      scrollPageIntoView(scrollAreaRef.current, pagesContainerRef.current, pageNumber, 'instant');
+    }
+  }, [loadState]);
+
+  // Keep our state in sync when the browser leaves real full screen on its own (Esc, or the
+  // browser's own exit gesture).
+  useEffect(() => {
+    function handleFullscreenChange() {
+      setIsFullscreen(document.fullscreenElement !== null && document.fullscreenElement === rootRef.current);
+    }
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, []);
+
+  // Fallback full screen (browsers without the Fullscreen API on elements, e.g. iPhone Safari) is
+  // just the viewer stretched over the page, so it needs its own Esc handling and scroll lock.
+  useEffect(() => {
+    if (!isFullscreen || document.fullscreenElement) return;
+    function handleKeyDown(keyboardEvent: KeyboardEvent) {
+      if (keyboardEvent.key === 'Escape') setIsFullscreen(false);
+    }
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isFullscreen]);
+
+  // Re-fit the pages to the new space after entering or leaving full screen. Waits a frame so the
+  // layout change has happened before measuring.
+  useEffect(() => {
+    if (!pdfDocumentRef.current) return;
+    const frame = requestAnimationFrame(() => {
+      setBaseRenderWidth(measureFitWidth(scrollAreaRef.current, isFullscreen ? FULLSCREEN_MAX_PAGE_RENDER_WIDTH : MAX_PAGE_RENDER_WIDTH));
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [isFullscreen]);
+
+  async function handleToggleFullscreen() {
+    if (isFullscreen) {
+      if (document.fullscreenElement) await document.exitFullscreen();
+      else setIsFullscreen(false);
+      return;
+    }
+    const root = rootRef.current;
+    if (root && typeof root.requestFullscreen === 'function') {
+      try {
+        await root.requestFullscreen();
+        return;
+      } catch {
+        // Fall through to the stretched-over-the-page fallback.
+      }
+    }
+    setIsFullscreen(true);
+  }
+
   function scrollToPage(pageNumber: number) {
-    const target = pagesContainerRef.current?.querySelector<HTMLElement>(`[data-page-number="${pageNumber}"]`);
-    target?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (scrollAreaRef.current && pagesContainerRef.current) {
+      scrollPageIntoView(scrollAreaRef.current, pagesContainerRef.current, pageNumber, 'smooth');
+    }
     setIsSidebarOpen(false);
   }
 
@@ -249,7 +354,10 @@ export function PdfViewer({ fileUrl }: { fileUrl: string }) {
   }
 
   return (
-    <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+    <div
+      ref={rootRef}
+      className={`overflow-hidden bg-white ${isFullscreen ? 'fixed inset-0 z-[60] flex flex-col' : 'rounded-lg border border-slate-200'}`}
+    >
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 bg-navy-950 px-3 py-2 text-white">
         <div className="flex items-center gap-2">
           <button
@@ -293,10 +401,21 @@ export function PdfViewer({ fileUrl }: { fileUrl: string }) {
           >
             <Icon name="plus" className="h-4 w-4" />
           </button>
+          <span className="mx-1 h-5 w-px bg-white/20" aria-hidden="true" />
+          <button
+            type="button"
+            onClick={handleToggleFullscreen}
+            aria-label={isFullscreen ? 'Exit full screen' : 'Full screen'}
+            title={isFullscreen ? 'Exit full screen (Esc)' : 'Full screen'}
+            className="flex h-8 items-center gap-1.5 rounded-md px-2 text-xs font-semibold hover:bg-white/10"
+          >
+            <Icon name={isFullscreen ? 'collapse' : 'expand'} className="h-4 w-4" />
+            <span className="hidden sm:inline">{isFullscreen ? 'Exit full screen' : 'Full screen'}</span>
+          </button>
         </div>
       </div>
 
-      <div className="relative flex" style={{ height: '75vh' }}>
+      <div className={`relative flex ${isFullscreen ? 'min-h-0 flex-1' : ''}`} style={isFullscreen ? undefined : { height: '75vh' }}>
         <div
           className={`${isSidebarOpen ? 'flex' : 'hidden'} absolute inset-y-0 left-0 z-10 w-32 flex-col gap-2 overflow-y-auto border-r border-slate-200 bg-slate-50 p-2 sm:w-40 lg:static lg:z-auto lg:flex`}
         >

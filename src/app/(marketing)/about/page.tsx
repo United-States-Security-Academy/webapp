@@ -1,6 +1,12 @@
 import { PageBanner } from '@/components/layout/page-banner';
 import { StatsSection } from '@/features/marketing/stats-section';
 import { Icon, type IconName } from '@/components/ui/icon';
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'About Us',
+  description: 'Who we are and how USSA trains security, law enforcement, corrections, military and safety professionals.',
+};
 
 const CORE_VALUES: { icon: IconName; title: string; description: string }[] = [
   { icon: 'shieldCheck', title: 'Honor', description: 'We hold ourselves and our graduates to the highest standard of conduct.' },

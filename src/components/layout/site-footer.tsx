@@ -68,10 +68,10 @@ export function SiteFooter() {
         <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-2 px-4 py-4 text-xs text-slate-400">
           <p>&copy; {new Date().getFullYear()} United States Security Academy. All Rights Reserved.</p>
           <div className="flex gap-4">
-            <Link href="#" className="hover:text-gold-400">
+            <Link href="/privacy" className="hover:text-gold-400">
               Privacy Policy
             </Link>
-            <Link href="#" className="hover:text-gold-400">
+            <Link href="/terms" className="hover:text-gold-400">
               Terms &amp; Conditions
             </Link>
           </div>

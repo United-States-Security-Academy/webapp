@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { PageBanner } from '@/components/layout/page-banner';
@@ -7,6 +8,14 @@ import { COURSE_CATEGORIES, COURSE_CATEGORY_META, getCourseCategoryByUrlSlug } f
 
 export function generateStaticParams() {
   return COURSE_CATEGORIES.map((category) => ({ categorySlug: COURSE_CATEGORY_META[category].urlSlug }));
+}
+
+export async function generateMetadata({ params }: { params: Promise<{ categorySlug: string }> }): Promise<Metadata> {
+  const { categorySlug } = await params;
+  const category = getCourseCategoryByUrlSlug(categorySlug);
+  if (!category) return { title: 'Program not found' };
+  const categoryMeta = COURSE_CATEGORY_META[category];
+  return { title: categoryMeta.programTitle, description: categoryMeta.tagline };
 }
 
 export default async function ProgramDetailPage({ params }: { params: Promise<{ categorySlug: string }> }) {

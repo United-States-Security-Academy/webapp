@@ -5,6 +5,12 @@ import { CourseCard } from '@/features/courses/course-card';
 import { COURSE_CATEGORIES, COURSE_CATEGORY_META } from '@/features/courses/course-category';
 import { Icon } from '@/components/ui/icon';
 import type { CourseCategory } from '@/features/courses/course-types';
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Courses & Programs',
+  description: 'Browse USSA online training courses and programs.',
+};
 
 function buildCoursesHref(searchQuery?: string, category?: CourseCategory): string {
   const params = new URLSearchParams();

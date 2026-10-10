@@ -8,6 +8,8 @@ import { Input } from '@/components/ui/input';
 import { Icon } from '@/components/ui/icon';
 import { Spinner } from '@/components/ui/spinner';
 import { saveLessonAudioTranscript } from './lesson-audio-transcript-actions';
+import { removeRunningHeadersAndFooters, type PositionedLine } from './remove-running-headers';
+import { tidyTextForSpeech } from './tidy-text-for-speech';
 
 type PlaybackState = 'idle' | 'extracting' | 'playing' | 'paused' | 'error';
 
@@ -23,6 +25,40 @@ function withTimeout<T>(promise: Promise<T>, timeoutMs: number, timeoutMessage: 
       setTimeout(() => reject(new Error(timeoutMessage)), timeoutMs);
     }),
   ]);
+}
+
+// Items on the same visual line share a baseline; anything within this many points is one line.
+const SAME_LINE_TOLERANCE = 2;
+// A horizontal gap wider than this many character heights starts a separate piece of text, so a
+// footer's left text and its right-aligned page number are judged separately.
+const SEPARATE_TEXT_GAP_IN_LINE_HEIGHTS = 2.5;
+
+// Groups a text-layer page's items into lines with their vertical position, so running headers
+// and footers can be told apart from body text by where they sit on the page.
+function groupTextItemsIntoLines(
+  items: Awaited<ReturnType<PdfjsLib.PDFPageProxy['getTextContent']>>['items'],
+  viewport: PdfjsLib.PageViewport,
+  pdfjsLib: typeof PdfjsLib,
+): PositionedLine[] {
+  const lines: { text: string; y: number; endX: number }[] = [];
+  for (const item of items) {
+    if (!('str' in item) || !item.str.trim()) continue;
+    // Map the item into on-screen coordinates (y measured down from the top), which also
+    // accounts for rotated pages.
+    const [, , , , x, y] = pdfjsLib.Util.transform(viewport.transform, item.transform);
+    const currentLine = lines[lines.length - 1];
+    const isSameLine =
+      currentLine &&
+      Math.abs(currentLine.y - y) <= SAME_LINE_TOLERANCE &&
+      x - currentLine.endX <= Math.max(item.height, 1) * SEPARATE_TEXT_GAP_IN_LINE_HEIGHTS;
+    if (isSameLine) {
+      currentLine.text += ` ${item.str}`;
+      currentLine.endX = x + item.width;
+    } else {
+      lines.push({ text: item.str, y, endX: x + item.width });
+    }
+  }
+  return lines.map((line) => ({ text: line.text, verticalPosition: line.y / viewport.height }));
 }
 
 async function extractPageTexts(fileUrl: string, onProgress: (message: string) => void): Promise<string[]> {
@@ -43,7 +79,7 @@ async function extractPageTexts(fileUrl: string, onProgress: (message: string) =
   const pdfBytes = await response.arrayBuffer();
 
   const pdfDocument = await pdfjsLib.getDocument({ data: pdfBytes }).promise;
-  const pageTexts: string[] = [];
+  const pageLines: PositionedLine[][] = [];
 
   // Only spun up if a page actually turns out to need OCR (no text layer) — most PDFs never
   // touch this, so the ~model-download cost of Tesseract only happens when it's really needed.
@@ -54,13 +90,9 @@ async function extractPageTexts(fileUrl: string, onProgress: (message: string) =
       onProgress(`Reading page ${pageNumber} of ${pdfDocument.numPages}...`);
       const page = await pdfDocument.getPage(pageNumber);
       const textContent = await page.getTextContent();
-      let pageText = textContent.items
-        .map((item) => ('str' in item ? item.str : ''))
-        .join(' ')
-        .replace(/\s+/g, ' ')
-        .trim();
+      let lines = groupTextItemsIntoLines(textContent.items, page.getViewport({ scale: 1 }), pdfjsLib);
 
-      if (!pageText) {
+      if (lines.length === 0) {
         onProgress(`Scanning page ${pageNumber} of ${pdfDocument.numPages} (no text layer found)...`);
         if (!ocrWorker) {
           const { createWorker } = await import('tesseract.js');
@@ -89,19 +121,27 @@ async function extractPageTexts(fileUrl: string, onProgress: (message: string) =
         if (canvasContext) {
           await page.render({ canvas, canvasContext, viewport }).promise;
           const {
-            data: { text: ocrText },
-          } = await withTimeout(ocrWorker.recognize(canvas), OCR_PAGE_TIMEOUT_MS, `Timed out scanning page ${pageNumber}.`);
-          pageText = ocrText.replace(/\s+/g, ' ').trim();
+            data: { blocks },
+          } = await withTimeout(
+            ocrWorker.recognize(canvas, {}, { blocks: true }),
+            OCR_PAGE_TIMEOUT_MS,
+            `Timed out scanning page ${pageNumber}.`,
+          );
+          lines = (blocks ?? [])
+            .flatMap((block) => block.paragraphs.flatMap((paragraph) => paragraph.lines))
+            .map((line) => ({ text: line.text, verticalPosition: (line.bbox.y0 + line.bbox.y1) / 2 / canvas.height }));
         }
       }
 
-      pageTexts.push(pageText || `Page ${pageNumber} has no readable text.`);
+      pageLines.push(lines);
     }
   } finally {
     await ocrWorker?.terminate();
   }
 
-  return pageTexts;
+  return removeRunningHeadersAndFooters(pageLines).map(
+    (pageText, pageIndex) => tidyTextForSpeech(pageText) || `Page ${pageIndex + 1} has no readable text.`,
+  );
 }
 
 // Chunked per PDF page rather than one giant utterance — keeps each utterance well under the

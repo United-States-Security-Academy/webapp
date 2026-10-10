@@ -1,6 +1,12 @@
 import Link from 'next/link';
 import { PageBanner } from '@/components/layout/page-banner';
 import { Icon, type IconName } from '@/components/ui/icon';
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Certifications',
+  description: 'Industry-recognized certifications across every training program USSA offers.',
+};
 
 const CERTIFICATIONS: { icon: IconName; title: string; description: string }[] = [
   { icon: 'military', title: 'Military Training Certification', description: 'Leadership, tactical skills, and mission readiness for military personnel.' },
