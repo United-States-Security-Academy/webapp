@@ -4,7 +4,11 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { getSupabaseBrowserClient } from '@/supabase/browser-client';
 import { Spinner } from '@/components/ui/spinner';
+import { compressImage } from '@/features/uploads/compress-image';
 import { createCourseThumbnailUploadTarget } from './course-thumbnail-actions';
+
+// Course cards show thumbnails at up to ~640px wide; 1280x720 keeps them sharp on high-density screens.
+const THUMBNAIL_LIMITS = { maxWidth: 1280, maxHeight: 720, targetBytes: 200 * 1024 };
 
 type UploadStatus = 'idle' | 'requestingUploadUrl' | 'uploading' | 'success' | 'error';
 
@@ -26,10 +30,11 @@ export function CourseThumbnailUploader({ courseId, hasExistingThumbnail }: { co
       const { path, token } = targetResult.data;
 
       setUploadStatus('uploading');
+      const compressedImage = await compressImage(selectedFile, THUMBNAIL_LIMITS);
       const supabaseBrowserClient = getSupabaseBrowserClient();
       const { error } = await supabaseBrowserClient.storage
         .from('course-thumbnails')
-        .uploadToSignedUrl(path, token, selectedFile, { upsert: true });
+        .uploadToSignedUrl(path, token, compressedImage, { upsert: true, contentType: compressedImage.type });
       if (error) throw new Error(error.message);
 
       setUploadStatus('success');

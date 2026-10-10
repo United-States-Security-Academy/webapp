@@ -5,6 +5,16 @@ import { isUserEnrolledInCourse } from '@/features/enrollments/enrollment-querie
 import { getCourseById } from '@/features/courses/course-queries';
 import type { Lesson } from '@/db/schema/lessons';
 
+// The access rule on its own, for callers that have already loaded the course and enrollment.
+export function hasLessonAccess(
+  authenticatedUser: AuthenticatedUser,
+  lesson: Pick<Lesson, 'isPreview'>,
+  courseOwnerId: string,
+  isEnrolled: boolean,
+): boolean {
+  return lesson.isPreview || authenticatedUser.role === 'admin' || courseOwnerId === authenticatedUser.userId || isEnrolled;
+}
+
 export async function requireLessonAccess(authenticatedUser: AuthenticatedUser, lesson: Lesson, courseId: string): Promise<void> {
   if (lesson.isPreview) return;
   if (authenticatedUser.role === 'admin') return;

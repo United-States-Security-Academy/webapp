@@ -5,7 +5,11 @@ import { useRouter } from 'next/navigation';
 import { getSupabaseBrowserClient } from '@/supabase/browser-client';
 import { Spinner } from '@/components/ui/spinner';
 import { Icon } from '@/components/ui/icon';
+import { compressImage } from '@/features/uploads/compress-image';
 import { createProfilePhotoUploadTarget } from './profile-actions';
+
+// Profile photos only appear as small avatars (80px at most); 512px square is plenty.
+const PHOTO_LIMITS = { maxWidth: 512, maxHeight: 512, targetBytes: 100 * 1024 };
 
 type UploadStatus = 'idle' | 'requestingUploadUrl' | 'uploading' | 'success' | 'error';
 
@@ -34,10 +38,11 @@ export function ProfilePhotoUploader({ photoUrl, displayName }: { photoUrl: stri
       const { path, token } = targetResult.data;
 
       setUploadStatus('uploading');
+      const compressedImage = await compressImage(selectedFile, PHOTO_LIMITS);
       const supabaseBrowserClient = getSupabaseBrowserClient();
       const { error } = await supabaseBrowserClient.storage
         .from('profile-photos')
-        .uploadToSignedUrl(path, token, selectedFile, { upsert: true });
+        .uploadToSignedUrl(path, token, compressedImage, { upsert: true, contentType: compressedImage.type });
       if (error) throw new Error(error.message);
 
       setUploadStatus('success');

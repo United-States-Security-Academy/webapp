@@ -5,7 +5,7 @@ import {
   listEnrolledCoursesWithProgress,
   listRecommendedCourses,
   selectEarnedCertificates,
-  getRecentActivity,
+  buildRecentActivity,
 } from '@/features/dashboard/dashboard-queries';
 import { listCompletedLessonsForUser } from '@/features/progress/course-progress-queries';
 import { getStudentProfile, isProfileComplete } from '@/features/profile/profile-queries';
@@ -23,17 +23,17 @@ export default async function DashboardPage() {
   const authenticatedUser = await getAuthenticatedUserFromSession();
   if (!authenticatedUser) redirect('/sign-in');
 
-  const [enrolledCourses, profile, completedLessons] = await Promise.all([
-    listEnrolledCoursesWithProgress(authenticatedUser.userId),
+  // Completed lessons are loaded once and shared by progress, recent activity and the streak charts.
+  const completedLessonsPromise = listCompletedLessonsForUser(authenticatedUser.userId);
+  const [enrolledCourses, profile, completedLessons, recommendedCourses] = await Promise.all([
+    listEnrolledCoursesWithProgress(authenticatedUser.userId, completedLessonsPromise),
     getStudentProfile(authenticatedUser.userId),
-    listCompletedLessonsForUser(authenticatedUser.userId),
+    completedLessonsPromise,
+    listRecommendedCourses(authenticatedUser.userId),
   ]);
   const hasCompleteProfile = isProfileComplete(profile);
   const certificates = selectEarnedCertificates(enrolledCourses);
-  const [activity, recommendedCourses] = await Promise.all([
-    getRecentActivity(authenticatedUser.userId, enrolledCourses),
-    listRecommendedCourses(enrolledCourses),
-  ]);
+  const activity = buildRecentActivity(enrolledCourses, completedLessons);
   const achievements = computeAchievements(enrolledCourses, certificates);
   const completedAtIsoList = completedLessons.map((completedLesson) => completedLesson.completedAt.toISOString());
 

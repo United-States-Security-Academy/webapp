@@ -3,7 +3,7 @@
 import { desc, eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { db } from '@/db/client';
-import { assessmentChoices, assessmentQuestions, courseAssessments } from '@/db/schema';
+import { assessmentChoices, assessmentQuestions, assessmentTimedSessions, courseAssessments } from '@/db/schema';
 import type { ActionResult } from '@/api-response/action-result';
 import { requireAuthenticatedUserFromSession } from '@/features/auth/require-authenticated-user';
 import { requireCourseOwnership } from '@/features/courses/require-course-ownership';
@@ -12,14 +12,24 @@ import { getCourseIdByAssessmentId, getCourseIdByChoiceId, getCourseIdByQuestion
 import type { AssessmentChoice, AssessmentQuestion, CourseAssessment } from './assessment-types';
 
 const QUESTION_POSITION_GAP = 10;
+const MAX_TIME_LIMIT_MINUTES = 600;
 const CHOICE_POSITION_GAP = 10;
 
 export async function createOrUpdateAssessment(
   courseId: string,
-  input: { title: string; passingScorePercentage: number },
+  // timeLimitMinutes: null removes the limit; leaving it out keeps the current setting.
+  input: { title: string; passingScorePercentage: number; timeLimitMinutes?: number | null },
 ): Promise<ActionResult<CourseAssessment>> {
   const authenticatedUser = await requireAuthenticatedUserFromSession();
   await requireCourseOwnership(authenticatedUser, courseId);
+
+  if (
+    input.timeLimitMinutes !== undefined &&
+    input.timeLimitMinutes !== null &&
+    (!Number.isInteger(input.timeLimitMinutes) || input.timeLimitMinutes < 1 || input.timeLimitMinutes > MAX_TIME_LIMIT_MINUTES)
+  ) {
+    return { success: false, error: `Time limit must be a whole number of minutes from 1 to ${MAX_TIME_LIMIT_MINUTES}, or left blank.` };
+  }
 
   const courseRecord = await getCourseById(courseId);
   if (!courseRecord) return { success: false, error: 'Course not found.' };
@@ -29,6 +39,12 @@ export async function createOrUpdateAssessment(
     ? await db.update(courseAssessments).set(input).where(eq(courseAssessments.id, existingAssessment.id)).returning()
     : await db.insert(courseAssessments).values({ courseId, ...input }).returning();
   if (!savedAssessment) return { success: false, error: 'Failed to save assessment.' };
+
+  // Removing the time limit ends any timed attempts in progress; otherwise they'd linger and be
+  // auto-submitted unexpectedly if a limit were added back later. Learners just take it untimed.
+  if (existingAssessment?.timeLimitMinutes && savedAssessment.timeLimitMinutes === null) {
+    await db.delete(assessmentTimedSessions).where(eq(assessmentTimedSessions.assessmentId, savedAssessment.id));
+  }
 
   revalidatePath(`/instructor/courses/${courseRecord.slug}/assessment`);
   return { success: true, data: savedAssessment };

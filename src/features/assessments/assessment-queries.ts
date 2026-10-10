@@ -1,4 +1,4 @@
-import { and, asc, desc, eq } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray } from 'drizzle-orm';
 import { db } from '@/db/client';
 import { assessmentChoices, assessmentAttempts, assessmentQuestions, courseAssessments } from '@/db/schema';
 import type { AssessmentAttempt, AssessmentForLearner, AssessmentWithQuestions } from './assessment-types';
@@ -6,6 +6,47 @@ import type { AssessmentAttempt, AssessmentForLearner, AssessmentWithQuestions }
 export async function getAssessmentByCourseId(courseId: string) {
   const [assessmentRecord] = await db.select().from(courseAssessments).where(eq(courseAssessments.courseId, courseId));
   return assessmentRecord ?? null;
+}
+
+export interface RequiredAssessmentStatus {
+  assessment: typeof courseAssessments.$inferSelect | null;
+  // Same rule as hasPassedRequiredAssessment: true when there's no assessment, it has no
+  // questions yet, or the learner has a passing attempt.
+  hasPassed: boolean;
+}
+
+// Assessment status for several courses in one query, instead of up to three per course.
+export async function getRequiredAssessmentStatuses(userId: string, courseIds: string[]): Promise<Map<string, RequiredAssessmentStatus>> {
+  const statuses = new Map<string, RequiredAssessmentStatus>(courseIds.map((courseId) => [courseId, { assessment: null, hasPassed: true }]));
+  if (courseIds.length === 0) return statuses;
+
+  // Joins (not correlated subqueries) so every column is table-qualified: Drizzle drops table
+  // names from single-table queries, which made a correlated `id` resolve to the inner table.
+  const assessmentsWithQuestions = db
+    .selectDistinct({ assessmentId: assessmentQuestions.assessmentId })
+    .from(assessmentQuestions)
+    .as('assessments_with_questions');
+  const passedAssessments = db
+    .selectDistinct({ assessmentId: assessmentAttempts.assessmentId })
+    .from(assessmentAttempts)
+    .where(and(eq(assessmentAttempts.userId, userId), eq(assessmentAttempts.passed, true)))
+    .as('passed_assessments');
+
+  const rows = await db
+    .select({
+      assessment: courseAssessments,
+      questionsFor: assessmentsWithQuestions.assessmentId,
+      passedFor: passedAssessments.assessmentId,
+    })
+    .from(courseAssessments)
+    .leftJoin(assessmentsWithQuestions, eq(assessmentsWithQuestions.assessmentId, courseAssessments.id))
+    .leftJoin(passedAssessments, eq(passedAssessments.assessmentId, courseAssessments.id))
+    .where(inArray(courseAssessments.courseId, courseIds));
+
+  for (const { assessment, questionsFor, passedFor } of rows) {
+    statuses.set(assessment.courseId, { assessment, hasPassed: questionsFor === null || passedFor !== null });
+  }
+  return statuses;
 }
 
 export async function getAssessmentWithQuestions(courseId: string): Promise<AssessmentWithQuestions | null> {
@@ -18,16 +59,24 @@ export async function getAssessmentWithQuestions(courseId: string): Promise<Asse
     .where(eq(assessmentQuestions.assessmentId, assessmentRecord.id))
     .orderBy(asc(assessmentQuestions.position));
 
-  const questions = await Promise.all(
-    questionRows.map(async (questionRow) => {
-      const choices = await db
-        .select()
-        .from(assessmentChoices)
-        .where(eq(assessmentChoices.questionId, questionRow.id))
-        .orderBy(asc(assessmentChoices.position));
-      return { ...questionRow, choices };
-    }),
-  );
+  // Every question's choices in one query (not one per question — a 99-question exam was 100 queries).
+  const choiceRows =
+    questionRows.length === 0
+      ? []
+      : await db
+          .select()
+          .from(assessmentChoices)
+          .where(
+            inArray(
+              assessmentChoices.questionId,
+              questionRows.map((questionRow) => questionRow.id),
+            ),
+          )
+          .orderBy(asc(assessmentChoices.position));
+  const questions = questionRows.map((questionRow) => ({
+    ...questionRow,
+    choices: choiceRows.filter((choice) => choice.questionId === questionRow.id),
+  }));
 
   return { ...assessmentRecord, questions };
 }
@@ -38,6 +87,7 @@ export function toLearnerView(assessment: AssessmentWithQuestions): AssessmentFo
     id: assessment.id,
     title: assessment.title,
     passingScorePercentage: assessment.passingScorePercentage,
+    timeLimitMinutes: assessment.timeLimitMinutes,
     questions: assessment.questions.map((question) => ({
       id: question.id,
       questionText: question.questionText,

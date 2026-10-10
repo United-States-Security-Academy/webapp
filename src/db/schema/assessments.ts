@@ -1,4 +1,4 @@
-import { pgTable, uuid, text, integer, boolean, timestamp, uniqueIndex, index } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, text, integer, boolean, timestamp, uniqueIndex, index, jsonb } from 'drizzle-orm/pg-core';
 import { courses } from './courses';
 import { users } from './users';
 
@@ -10,6 +10,9 @@ export const courseAssessments = pgTable('course_assessments', {
     .references(() => courses.id, { onDelete: 'cascade' }),
   title: text('title').notNull(),
   passingScorePercentage: integer('passing_score_percentage').notNull().default(70),
+  // Null means untimed. When set, a learner's attempt is auto-submitted once this many minutes
+  // have passed since they pressed Start (tracked server-side in assessment_timed_sessions).
+  timeLimitMinutes: integer('time_limit_minutes'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
@@ -89,3 +92,32 @@ export const assessmentAttemptAnswers = pgTable(
     ),
   }),
 );
+
+// The in-progress state of a timed attempt: when it started, when it must end, and the answers
+// picked so far. The deadline lives here (not in the browser) so refreshing, closing the tab or
+// switching devices can't restart the clock, and the saved answers let an attempt whose time ran
+// out while the tab was closed still be submitted. The row is removed once the attempt is graded.
+export const assessmentTimedSessions = pgTable(
+  'assessment_timed_sessions',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    assessmentId: uuid('assessment_id')
+      .notNull()
+      .references(() => courseAssessments.id, { onDelete: 'cascade' }),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    startedAt: timestamp('started_at', { withTimezone: true }).notNull().defaultNow(),
+    deadlineAt: timestamp('deadline_at', { withTimezone: true }).notNull(),
+    // questionId -> selected choiceId
+    draftAnswers: jsonb('draft_answers').$type<Record<string, string>>().notNull().default({}),
+  },
+  (table) => ({
+    assessmentIdUserIdUnique: uniqueIndex('assessment_timed_sessions_assessment_id_user_id_unique').on(
+      table.assessmentId,
+      table.userId,
+    ),
+  }),
+);
+
+export type AssessmentTimedSession = typeof assessmentTimedSessions.$inferSelect;

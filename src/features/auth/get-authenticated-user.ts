@@ -1,3 +1,4 @@
+import { cache } from 'react';
 import { createRemoteJWKSet, jwtVerify } from 'jose';
 import { eq } from 'drizzle-orm';
 import { db } from '@/db/client';
@@ -119,7 +120,9 @@ export async function getAuthenticatedUser(request: Request): Promise<Authentica
 }
 
 // Cookie-only variant for Server Actions, which receive no Request object to read a bearer header from.
-export async function getAuthenticatedUserFromSession(): Promise<AuthenticatedUser | null> {
+// Wrapped in React's cache() so a layout and its page share one lookup per request instead of
+// each verifying the session and querying the user row (outside a render it simply runs each time).
+export const getAuthenticatedUserFromSession = cache(async (): Promise<AuthenticatedUser | null> => {
   const supabaseAccessToken = await extractCookieAccessToken();
   return resolveAuthenticatedUser(supabaseAccessToken);
-}
+});

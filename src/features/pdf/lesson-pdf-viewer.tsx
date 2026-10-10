@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import type * as PdfjsLib from 'pdfjs-dist';
 import { Icon } from '@/components/ui/icon';
 import { Spinner } from '@/components/ui/spinner';
+import { loadLessonPdfBytes } from './lesson-pdf-bytes';
 import './pdf-text-layer.css';
 
 const MAX_PAGE_RENDER_WIDTH = 720;
@@ -45,7 +46,7 @@ function measureFitWidth(scrollArea: HTMLElement | null, maxWidth: number): numb
   return Math.max(MIN_PAGE_RENDER_WIDTH, Math.min(maxWidth, availableWidth));
 }
 
-export function PdfViewer({ fileUrl }: { fileUrl: string }) {
+export function PdfViewer({ fileUrl, lessonId, pdfVersion }: { fileUrl: string; lessonId: string; pdfVersion: string }) {
   const rootRef = useRef<HTMLDivElement>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const pagesContainerRef = useRef<HTMLDivElement>(null);
@@ -89,13 +90,8 @@ export function PdfViewer({ fileUrl }: { fileUrl: string }) {
       pdfjsLibRef.current = pdfjsLib;
 
       try {
-        // Fetch the bytes ourselves and hand pdfjs the raw data instead of a URL — letting
-        // pdfjs manage the HTTP request against Supabase's signed-URL endpoint (even with
-        // range/streaming disabled) was unreliable and could silently drop page content. A
-        // plain browser fetch is well-tested and guaranteed to hand back the complete body.
-        const response = await fetch(fileUrl);
-        if (!response.ok) throw new Error(`Failed to download the PDF (status ${response.status}).`);
-        const pdfBytes = await response.arrayBuffer();
+        // Shared with the read-aloud player and kept on the device between visits.
+        const pdfBytes = await loadLessonPdfBytes(fileUrl, lessonId, pdfVersion);
         if (isCancelled) return;
 
         const pdfDocument = await pdfjsLib.getDocument({ data: pdfBytes }).promise;
@@ -116,7 +112,7 @@ export function PdfViewer({ fileUrl }: { fileUrl: string }) {
     return () => {
       isCancelled = true;
     };
-  }, [fileUrl]);
+  }, [fileUrl, lessonId, pdfVersion]);
 
   // Render every page (and its thumbnail) whenever the document finishes loading or the zoom changes.
   useEffect(() => {

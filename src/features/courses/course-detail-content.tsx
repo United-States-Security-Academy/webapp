@@ -2,10 +2,10 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getAuthenticatedUserFromSession } from '@/features/auth/get-authenticated-user';
 import { getCourseBySlug } from '@/features/courses/course-queries';
-import { getCourseContentTree } from '@/features/courses/course-content-queries';
+import { getCourseContentTree, listLessonsInOrder } from '@/features/courses/course-content-queries';
 import { isUserEnrolledInCourse } from '@/features/enrollments/enrollment-queries';
-import { getCourseModuleProgress, getCompletedLessonIds } from '@/features/progress/course-progress-queries';
-import { getAssessmentByCourseId, hasPassedRequiredAssessment } from '@/features/assessments/assessment-queries';
+import { computeCourseProgress, getCompletedLessonTimes } from '@/features/progress/course-progress-queries';
+import { getRequiredAssessmentStatuses } from '@/features/assessments/assessment-queries';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Icon } from '@/components/ui/icon';
@@ -31,22 +31,28 @@ export async function CourseDetailContent({ courseSlug, basePath }: CourseDetail
     !!authenticatedUser && (authenticatedUser.role === 'admin' || authenticatedUser.userId === courseRecord.ownerId);
   if (courseRecord.status !== 'published' && !isOwnerOrAdmin) notFound();
 
-  const modulesWithLessons = await getCourseContentTree(courseRecord.id);
-
-  const isEnrolled = authenticatedUser ? await isUserEnrolledInCourse(authenticatedUser.userId, courseRecord.id) : false;
+  // One parallel wave: course content, plus this learner's enrollment, progress and exam status.
+  const [modulesWithLessons, isEnrolled, completedAtByLessonId, assessmentStatuses] = await Promise.all([
+    getCourseContentTree(courseRecord.id),
+    authenticatedUser ? isUserEnrolledInCourse(authenticatedUser.userId, courseRecord.id) : false,
+    authenticatedUser ? getCompletedLessonTimes(authenticatedUser.userId, [courseRecord.id]) : new Map<string, Date>(),
+    authenticatedUser ? getRequiredAssessmentStatuses(authenticatedUser.userId, [courseRecord.id]) : null,
+  ]);
   const hasFullAccess = isOwnerOrAdmin || isEnrolled;
 
   const progress = authenticatedUser
-    ? await getCourseModuleProgress(authenticatedUser.userId, courseRecord.id)
+    ? computeCourseProgress(
+        listLessonsInOrder(modulesWithLessons).map((lesson) => lesson.id),
+        completedAtByLessonId,
+      )
     : { totalLessons: 0, completedLessons: 0, completedAt: null };
-  const completedLessonIds = authenticatedUser
-    ? await getCompletedLessonIds(authenticatedUser.userId, courseRecord.id)
-    : new Set<string>();
+  const completedLessonIds = new Set(completedAtByLessonId.keys());
 
   const isFree = courseRecord.priceAmountMinor === 0;
   const isCourseComplete = hasFullAccess && progress.completedAt !== null;
-  const assessment = isCourseComplete ? await getAssessmentByCourseId(courseRecord.id) : null;
-  const hasPassedAssessment = isCourseComplete && authenticatedUser ? await hasPassedRequiredAssessment(authenticatedUser.userId, courseRecord.id) : false;
+  const assessmentStatus = assessmentStatuses?.get(courseRecord.id);
+  const assessment = isCourseComplete ? (assessmentStatus?.assessment ?? null) : null;
+  const hasPassedAssessment = isCourseComplete ? (assessmentStatus?.hasPassed ?? true) : false;
 
   return (
     <>

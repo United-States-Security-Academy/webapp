@@ -1,4 +1,4 @@
-import { and, eq, isNotNull } from 'drizzle-orm';
+import { and, eq, inArray, isNotNull } from 'drizzle-orm';
 import { db } from '@/db/client';
 import { courses, lessonProgress, lessons, modules } from '@/db/schema';
 
@@ -8,6 +8,32 @@ export interface CourseProgress {
   // The moment the course became 100% complete (the last lesson's completedAt), or null if
   // it isn't fully complete yet. Derived, not stored — there is no separate "course completed" row.
   completedAt: Date | null;
+}
+
+// Progress from data the caller already has — the course's lessons and when the learner finished
+// each — so pages that load the course content tree don't need separate progress queries.
+export function computeCourseProgress(courseLessonIds: string[], completedAtByLessonId: Map<string, Date>): CourseProgress {
+  const completedTimes = courseLessonIds.flatMap((lessonId) => {
+    const completedAt = completedAtByLessonId.get(lessonId);
+    return completedAt ? [completedAt] : [];
+  });
+  const isCourseComplete = courseLessonIds.length > 0 && completedTimes.length === courseLessonIds.length;
+  const completedAt = isCourseComplete
+    ? completedTimes.reduce((latest, time) => (time > latest ? time : latest))
+    : null;
+  return { totalLessons: courseLessonIds.length, completedLessons: completedTimes.length, completedAt };
+}
+
+// When the learner completed each lesson in the given courses, in one query.
+export async function getCompletedLessonTimes(userId: string, courseIds: string[]): Promise<Map<string, Date>> {
+  if (courseIds.length === 0) return new Map();
+  const rows = await db
+    .select({ lessonId: lessonProgress.lessonId, completedAt: lessonProgress.completedAt })
+    .from(lessonProgress)
+    .innerJoin(lessons, eq(lessons.id, lessonProgress.lessonId))
+    .innerJoin(modules, eq(modules.id, lessons.moduleId))
+    .where(and(eq(lessonProgress.userId, userId), inArray(modules.courseId, courseIds), isNotNull(lessonProgress.completedAt)));
+  return new Map(rows.flatMap((row) => (row.completedAt ? [[row.lessonId, row.completedAt] as const] : [])));
 }
 
 export async function getCourseModuleProgress(userId: string, courseId: string): Promise<CourseProgress> {
@@ -38,6 +64,8 @@ export async function getCourseModuleProgress(userId: string, courseId: string):
 }
 
 export interface CompletedLessonActivity {
+  lessonId: string;
+  courseId: string;
   lessonTitle: string;
   lessonSlug: string;
   courseTitle: string;
@@ -48,6 +76,8 @@ export interface CompletedLessonActivity {
 export async function listCompletedLessonsForUser(userId: string): Promise<CompletedLessonActivity[]> {
   const rows = await db
     .select({
+      lessonId: lessons.id,
+      courseId: courses.id,
       lessonTitle: lessons.title,
       lessonSlug: lessons.slug,
       courseTitle: courses.title,
@@ -65,13 +95,3 @@ export async function listCompletedLessonsForUser(userId: string): Promise<Compl
     .sort((a, b) => b.completedAt.getTime() - a.completedAt.getTime());
 }
 
-export async function getCompletedLessonIds(userId: string, courseId: string): Promise<Set<string>> {
-  const completedRows = await db
-    .select({ lessonId: lessonProgress.lessonId })
-    .from(lessonProgress)
-    .innerJoin(lessons, eq(lessons.id, lessonProgress.lessonId))
-    .innerJoin(modules, eq(modules.id, lessons.moduleId))
-    .where(and(eq(lessonProgress.userId, userId), eq(modules.courseId, courseId), isNotNull(lessonProgress.completedAt)));
-
-  return new Set(completedRows.map((row) => row.lessonId));
-}

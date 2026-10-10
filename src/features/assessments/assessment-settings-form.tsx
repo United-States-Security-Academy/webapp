@@ -12,6 +12,7 @@ export function AssessmentSettingsForm({ courseId, assessment }: { courseId: str
   const [isEditing, setIsEditing] = useState(false);
   const [title, setTitle] = useState(assessment.title);
   const [passingScoreInput, setPassingScoreInput] = useState(String(assessment.passingScorePercentage));
+  const [timeLimitInput, setTimeLimitInput] = useState(assessment.timeLimitMinutes ? String(assessment.timeLimitMinutes) : '');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -20,7 +21,8 @@ export function AssessmentSettingsForm({ courseId, assessment }: { courseId: str
     setIsSubmitting(true);
     setErrorMessage(null);
     const passingScorePercentage = Math.min(100, Math.max(0, Number.parseInt(passingScoreInput, 10) || 0));
-    const result = await createOrUpdateAssessment(courseId, { title, passingScorePercentage });
+    const timeLimitMinutes = timeLimitInput.trim() ? Number(timeLimitInput) : null;
+    const result = await createOrUpdateAssessment(courseId, { title, passingScorePercentage, timeLimitMinutes });
     if (!result.success) {
       setErrorMessage(result.error);
       setIsSubmitting(false);
@@ -36,7 +38,10 @@ export function AssessmentSettingsForm({ courseId, assessment }: { courseId: str
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
           <h1 className="text-2xl font-semibold text-slate-900">{assessment.title}</h1>
-          <p className="text-sm text-slate-500">Passing score: {assessment.passingScorePercentage}%</p>
+          <p className="text-sm text-slate-500">
+            Passing score: {assessment.passingScorePercentage}% &middot;{' '}
+            {assessment.timeLimitMinutes ? `Time limit: ${assessment.timeLimitMinutes} minutes` : 'No time limit'}
+          </p>
         </div>
         <Button variant="outline" onClick={() => setIsEditing(true)}>
           Edit settings
@@ -61,6 +66,22 @@ export function AssessmentSettingsForm({ courseId, assessment }: { courseId: str
           onChange={(changeEvent) => setPassingScoreInput(changeEvent.target.value)}
           required
         />
+      </div>
+      <div>
+        <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-slate-600">Time limit (minutes)</label>
+        <Input
+          type="number"
+          min="1"
+          max="600"
+          step="1"
+          placeholder="No time limit"
+          value={timeLimitInput}
+          onChange={(changeEvent) => setTimeLimitInput(changeEvent.target.value)}
+        />
+        <p className="mt-1 text-xs text-slate-400">
+          Leave blank for no limit. When set, students see a countdown and their answers are submitted automatically when time
+          runs out.
+        </p>
       </div>
       <div className="flex gap-2">
         <Button type="submit" isLoading={isSubmitting}>

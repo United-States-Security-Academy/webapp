@@ -7,10 +7,13 @@ import { Icon } from '@/components/ui/icon';
 
 export default async function AssessmentResultPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ courseSlug: string; attemptId: string }>;
+  searchParams: Promise<{ timeUp?: string }>;
 }) {
   const { courseSlug, attemptId } = await params;
+  const { timeUp } = await searchParams;
   const authenticatedUser = await getAuthenticatedUserFromSession();
   if (!authenticatedUser) redirect('/sign-in');
 
@@ -32,6 +35,13 @@ export default async function AssessmentResultPage({
       >
         &larr; Back to assessment
       </Link>
+
+      {timeUp && (
+        <p className="mt-4 flex items-center gap-2 rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          <Icon name="clock" className="h-4 w-4 shrink-0" />
+          Time ran out, so your answers were submitted automatically. Unanswered questions were marked incorrect.
+        </p>
+      )}
 
       <div className="mt-4 flex flex-col items-center rounded-2xl border border-slate-200 bg-white px-6 py-10 text-center shadow-sm">
         <span

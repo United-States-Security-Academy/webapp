@@ -30,5 +30,6 @@ export interface AssessmentForLearner {
   id: string;
   title: string;
   passingScorePercentage: number;
+  timeLimitMinutes: number | null;
   questions: QuestionForLearner[];
 }

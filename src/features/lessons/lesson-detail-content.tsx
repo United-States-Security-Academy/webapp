@@ -2,15 +2,13 @@ import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { getAuthenticatedUserFromSession } from '@/features/auth/get-authenticated-user';
 import { getCourseBySlug } from '@/features/courses/course-queries';
-import { getCourseContentTree } from '@/features/courses/course-content-queries';
-import { getLessonBySlugInCourse } from '@/features/lessons/lesson-queries';
-import { requireLessonAccess } from '@/features/lessons/require-lesson-access';
+import { getCourseContentTree, listLessonsInOrder } from '@/features/courses/course-content-queries';
+import { hasLessonAccess } from '@/features/lessons/require-lesson-access';
 import { isUserEnrolledInCourse } from '@/features/enrollments/enrollment-queries';
-import { getCourseModuleProgress, getCompletedLessonIds } from '@/features/progress/course-progress-queries';
-import { createLessonPdfViewUrl } from '@/features/pdf/lesson-pdf-storage-client';
+import { computeCourseProgress, getCompletedLessonTimes } from '@/features/progress/course-progress-queries';
+import { createLessonPdfViewUrl, getLessonPdfVersion } from '@/features/pdf/lesson-pdf-storage-client';
 import { getLessonAudioTranscript } from '@/features/pdf/lesson-audio-transcript-queries';
-import { getAssessmentByCourseId, hasPassedRequiredAssessment } from '@/features/assessments/assessment-queries';
-import { ApiError } from '@/api-response/api-error';
+import { getRequiredAssessmentStatuses } from '@/features/assessments/assessment-queries';
 import { PdfViewer } from '@/features/pdf/lesson-pdf-viewer-lazy';
 import { PdfAudioPlayer } from '@/features/pdf/pdf-audio-player';
 import { MarkDoneButton } from '@/features/progress/mark-done-button';
@@ -30,33 +28,41 @@ export async function LessonDetailContent({ courseSlug, lessonSlug, basePath }: 
   const courseRecord = await getCourseBySlug(courseSlug);
   if (!courseRecord) notFound();
 
-  const lessonRecord = await getLessonBySlugInCourse(courseRecord.id, lessonSlug);
-  if (!lessonRecord) notFound();
+  // Everything else about the course for this learner, in one parallel wave of queries.
+  const [modulesWithLessons, isEnrolled, completedAtByLessonId, assessmentStatuses] = await Promise.all([
+    getCourseContentTree(courseRecord.id),
+    isUserEnrolledInCourse(authenticatedUser.userId, courseRecord.id),
+    getCompletedLessonTimes(authenticatedUser.userId, [courseRecord.id]),
+    getRequiredAssessmentStatuses(authenticatedUser.userId, [courseRecord.id]),
+  ]);
 
-  try {
-    await requireLessonAccess(authenticatedUser, lessonRecord, courseRecord.id);
-  } catch (error) {
-    if (error instanceof ApiError) redirect(`${basePath}/${courseRecord.slug}`);
-    throw error;
-  }
+  const lessonsInOrder = listLessonsInOrder(modulesWithLessons);
+  const lessonRecord = lessonsInOrder.find((lesson) => lesson.slug === lessonSlug);
+  if (!lessonRecord) notFound();
+  if (!hasLessonAccess(authenticatedUser, lessonRecord, courseRecord.ownerId, isEnrolled)) redirect(`${basePath}/${courseRecord.slug}`);
 
   const isOwnerOrAdmin = authenticatedUser.role === 'admin' || authenticatedUser.userId === courseRecord.ownerId;
-  const isEnrolled = await isUserEnrolledInCourse(authenticatedUser.userId, courseRecord.id);
   const hasFullAccess = isOwnerOrAdmin || isEnrolled;
 
-  const [modulesWithLessons, progress, completedLessonIds] = await Promise.all([
-    getCourseContentTree(courseRecord.id),
-    getCourseModuleProgress(authenticatedUser.userId, courseRecord.id),
-    getCompletedLessonIds(authenticatedUser.userId, courseRecord.id),
-  ]);
+  const progress = computeCourseProgress(
+    lessonsInOrder.map((lesson) => lesson.id),
+    completedAtByLessonId,
+  );
+  const completedLessonIds = new Set(completedAtByLessonId.keys());
   const isCompleted = completedLessonIds.has(lessonRecord.id);
   const isCourseComplete = hasFullAccess && progress.completedAt !== null;
-  const assessment = isCourseComplete ? await getAssessmentByCourseId(courseRecord.id) : null;
-  const hasPassedAssessment = isCourseComplete ? await hasPassedRequiredAssessment(authenticatedUser.userId, courseRecord.id) : false;
+  const assessmentStatus = assessmentStatuses.get(courseRecord.id);
+  const assessment = isCourseComplete ? (assessmentStatus?.assessment ?? null) : null;
+  const hasPassedAssessment = isCourseComplete ? (assessmentStatus?.hasPassed ?? true) : false;
 
-  const pdfViewUrl =
-    lessonRecord.contentType === 'pdf' && lessonRecord.pdfStoragePath ? await createLessonPdfViewUrl(lessonRecord.pdfStoragePath) : null;
-  const cachedAudioPages = pdfViewUrl ? await getLessonAudioTranscript(lessonRecord.id) : null;
+  const pdfStoragePath = lessonRecord.contentType === 'pdf' ? lessonRecord.pdfStoragePath : null;
+  const [pdfViewUrl, pdfVersion, cachedAudioPages] = pdfStoragePath
+    ? await Promise.all([
+        createLessonPdfViewUrl(pdfStoragePath),
+        getLessonPdfVersion(pdfStoragePath),
+        getLessonAudioTranscript(lessonRecord.id),
+      ])
+    : [null, null, null];
 
   return (
     <div className="mx-auto max-w-6xl px-4">
@@ -108,8 +114,13 @@ export async function LessonDetailContent({ courseSlug, lessonSlug, basePath }: 
             {lessonRecord.contentType === 'pdf' ? (
               pdfViewUrl ? (
                 <div className="flex flex-col gap-4">
-                  <PdfAudioPlayer fileUrl={pdfViewUrl} lessonId={lessonRecord.id} cachedPages={cachedAudioPages} />
-                  <PdfViewer fileUrl={pdfViewUrl} />
+                  <PdfAudioPlayer
+                    fileUrl={pdfViewUrl}
+                    pdfVersion={pdfVersion ?? 'unknown'}
+                    lessonId={lessonRecord.id}
+                    cachedPages={cachedAudioPages}
+                  />
+                  <PdfViewer fileUrl={pdfViewUrl} lessonId={lessonRecord.id} pdfVersion={pdfVersion ?? 'unknown'} />
                 </div>
               ) : (
                 <p className="text-sm text-slate-500">This lesson&apos;s document has not been uploaded yet.</p>

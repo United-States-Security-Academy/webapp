@@ -1,15 +1,14 @@
 import { and, desc, eq, notInArray } from 'drizzle-orm';
 import { db } from '@/db/client';
-import { courses, users } from '@/db/schema';
+import { courses, enrollments, users } from '@/db/schema';
 import { listEnrollmentsByUser } from '@/features/enrollments/enrollment-queries';
-import { getCourseContentTree } from '@/features/courses/course-content-queries';
+import { getCourseContentTrees, listLessonsInOrder } from '@/features/courses/course-content-queries';
 import {
-  getCourseModuleProgress,
-  getCompletedLessonIds,
-  listCompletedLessonsForUser,
+  computeCourseProgress,
+  type CompletedLessonActivity,
   type CourseProgress,
 } from '@/features/progress/course-progress-queries';
-import { hasPassedRequiredAssessment } from '@/features/assessments/assessment-queries';
+import { getRequiredAssessmentStatuses } from '@/features/assessments/assessment-queries';
 import type { Course } from '@/features/courses/course-types';
 
 export interface EnrolledCourseSummary {
@@ -25,30 +24,37 @@ export interface EnrolledCourseSummary {
   hasPassedRequiredAssessment: boolean;
 }
 
-export async function listEnrolledCoursesWithProgress(userId: string): Promise<EnrolledCourseSummary[]> {
+// Two waves of set-based queries no matter how many courses the learner has: enrollments, then
+// every course's content and assessment status at once. Progress is worked out from
+// `completedLessons`, which the caller loads once and also uses for activity and streaks.
+export async function listEnrolledCoursesWithProgress(
+  userId: string,
+  // A promise so the caller can start this query once, share it, and let it run in parallel.
+  completedLessonsPromise: Promise<CompletedLessonActivity[]>,
+): Promise<EnrolledCourseSummary[]> {
   const enrollmentRows = await listEnrollmentsByUser(userId);
+  const courseIds = enrollmentRows.map(({ course }) => course.id);
+  const [contentTrees, assessmentStatuses] = await Promise.all([
+    getCourseContentTrees(courseIds),
+    getRequiredAssessmentStatuses(userId, courseIds),
+  ]);
+  const completedLessons = await completedLessonsPromise;
+  const completedAtByLessonId = new Map(completedLessons.map((row) => [row.lessonId, row.completedAt]));
 
-  return Promise.all(
-    enrollmentRows.map(async ({ enrollment, course }) => {
-      const [progress, completedLessonIds, contentTree, hasPassedAssessment] = await Promise.all([
-        getCourseModuleProgress(userId, course.id),
-        getCompletedLessonIds(userId, course.id),
-        getCourseContentTree(course.id),
-        hasPassedRequiredAssessment(userId, course.id),
-      ]);
-
-      const allLessonsInOrder = contentTree.flatMap(({ moduleLessons }) => moduleLessons);
-      const nextLesson = allLessonsInOrder.find((lesson) => !completedLessonIds.has(lesson.id)) ?? allLessonsInOrder[0];
-
-      return {
-        course,
-        progress,
-        enrolledAt: enrollment.enrolledAt,
-        nextLessonSlug: nextLesson?.slug ?? null,
-        hasPassedRequiredAssessment: hasPassedAssessment,
-      };
-    }),
-  );
+  return enrollmentRows.map(({ enrollment, course }) => {
+    const lessonsInOrder = listLessonsInOrder(contentTrees.get(course.id) ?? []);
+    const nextLesson = lessonsInOrder.find((lesson) => !completedAtByLessonId.has(lesson.id)) ?? lessonsInOrder[0];
+    return {
+      course,
+      progress: computeCourseProgress(
+        lessonsInOrder.map((lesson) => lesson.id),
+        completedAtByLessonId,
+      ),
+      enrolledAt: enrollment.enrolledAt,
+      nextLessonSlug: nextLesson?.slug ?? null,
+      hasPassedRequiredAssessment: assessmentStatuses.get(course.id)?.hasPassed ?? true,
+    };
+  });
 }
 
 export interface EarnedCertificate {
@@ -73,21 +79,15 @@ export type ActivityEvent =
   | { type: 'lesson_completed'; timestamp: Date; courseTitle: string; courseSlug: string; lessonTitle: string; lessonSlug: string }
   | { type: 'certificate_earned'; timestamp: Date; courseTitle: string; courseSlug: string };
 
-// `enrolledCourses` is passed in (rather than re-fetched) so the dashboard page's single
-// listEnrolledCoursesWithProgress call is reused instead of duplicating that work here.
-export async function getRecentActivity(
-  userId: string,
+// Pure — built from data the dashboard already loaded, so it adds no queries of its own.
+export function buildRecentActivity(
   enrolledCourses: EnrolledCourseSummary[],
+  completedLessons: CompletedLessonActivity[],
   limit = 15,
-): Promise<ActivityEvent[]> {
-  const [enrollmentRows, completedLessons] = await Promise.all([
-    listEnrollmentsByUser(userId),
-    listCompletedLessonsForUser(userId),
-  ]);
-
-  const enrollmentEvents: ActivityEvent[] = enrollmentRows.map(({ enrollment, course }) => ({
+): ActivityEvent[] {
+  const enrollmentEvents: ActivityEvent[] = enrolledCourses.map(({ enrolledAt, course }) => ({
     type: 'enrolled',
-    timestamp: enrollment.enrolledAt,
+    timestamp: enrolledAt,
     courseTitle: course.title,
     courseSlug: course.slug,
   }));
@@ -118,21 +118,15 @@ export interface RecommendedCourse {
   instructorName: string;
 }
 
-// Published courses the learner isn't enrolled in yet, newest first.
-export async function listRecommendedCourses(
-  enrolledCourses: EnrolledCourseSummary[],
-  limit = 4,
-): Promise<RecommendedCourse[]> {
-  const enrolledCourseIds = enrolledCourses.map((entry) => entry.course.id);
-  const conditions = [eq(courses.status, 'published')];
-  if (enrolledCourseIds.length > 0) conditions.push(notInArray(courses.id, enrolledCourseIds));
-
-  const rows = await db
+// Published courses the learner isn't enrolled in yet, newest first. Excludes enrollments with a
+// subquery, so it doesn't have to wait for the enrollment list and can run alongside it.
+export async function listRecommendedCourses(userId: string, limit = 4): Promise<RecommendedCourse[]> {
+  const enrolledCourseIds = db.select({ courseId: enrollments.courseId }).from(enrollments).where(eq(enrollments.userId, userId));
+  return db
     .select({ course: courses, instructorName: users.displayName })
     .from(courses)
     .innerJoin(users, eq(users.id, courses.ownerId))
-    .where(and(...conditions))
+    .where(and(eq(courses.status, 'published'), notInArray(courses.id, enrolledCourseIds)))
     .orderBy(desc(courses.createdAt))
     .limit(limit);
-  return rows;
 }

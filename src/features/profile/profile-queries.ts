@@ -1,12 +1,14 @@
+import { cache } from 'react';
 import { eq } from 'drizzle-orm';
 import { db } from '@/db/client';
 import { studentProfiles } from '@/db/schema';
 import type { StudentProfile } from '@/db/schema/student-profiles';
 
-export async function getStudentProfile(userId: string): Promise<StudentProfile | null> {
+// cache(): the dashboard layout and page both need the profile; this loads it once per request.
+export const getStudentProfile = cache(async (userId: string): Promise<StudentProfile | null> => {
   const [profile] = await db.select().from(studentProfiles).where(eq(studentProfiles.userId, userId));
   return profile ?? null;
-}
+});
 
 // The fields the certification paperwork actually needs — the photo is encouraged but not
 // required, since it's for account personalization rather than identity verification.

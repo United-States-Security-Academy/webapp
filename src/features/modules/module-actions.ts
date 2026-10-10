@@ -1,6 +1,6 @@
 'use server';
 
-import { desc, eq } from 'drizzle-orm';
+import { asc, desc, eq } from 'drizzle-orm';
 import { db } from '@/db/client';
 import { modules } from '@/db/schema';
 import { ApiError } from '@/api-response/api-error';
@@ -77,16 +77,40 @@ export async function deleteModule(moduleId: string): Promise<ActionResult> {
   }
 }
 
-export async function reorderModules(courseId: string, orderedModuleIds: string[]) {
-  const authenticatedUser = await requireAuthenticatedUserFromSession();
-  await requireCourseOwnership(authenticatedUser, courseId);
+// Moves a module to a new 1-based position within its course (e.g. module 3 to position 1),
+// shifting the others along. The new order is worked out from the database rather than sent by
+// the browser, so a stale page in another tab can't scramble the course.
+export async function moveModule(moduleId: string, targetPosition: number): Promise<ActionResult> {
+  try {
+    const authenticatedUser = await requireAuthenticatedUserFromSession();
+    const moduleRecord = await getModuleById(moduleId);
+    if (!moduleRecord) throw new ApiError(404, API_ERROR_CODE.MODULE_NOT_FOUND, 'Module not found.');
+    await requireCourseOwnership(authenticatedUser, moduleRecord.courseId);
 
-  await Promise.all(
-    orderedModuleIds.map((moduleId, index) =>
-      db
-        .update(modules)
-        .set({ position: (index + 1) * MODULE_POSITION_GAP })
-        .where(eq(modules.id, moduleId)),
-    ),
-  );
+    const courseModules = await db
+      .select({ id: modules.id })
+      .from(modules)
+      .where(eq(modules.courseId, moduleRecord.courseId))
+      .orderBy(asc(modules.position), asc(modules.id));
+    if (!Number.isInteger(targetPosition) || targetPosition < 1 || targetPosition > courseModules.length) {
+      return { success: false, error: `Position must be between 1 and ${courseModules.length}.` };
+    }
+
+    const orderedIds = courseModules.map((courseModule) => courseModule.id).filter((id) => id !== moduleId);
+    orderedIds.splice(targetPosition - 1, 0, moduleId);
+
+    // Renumber every module in one transaction so the course never ends up half-reordered.
+    await db.transaction(async (transaction) => {
+      for (const [index, id] of orderedIds.entries()) {
+        await transaction
+          .update(modules)
+          .set({ position: (index + 1) * MODULE_POSITION_GAP })
+          .where(eq(modules.id, id));
+      }
+    });
+    return { success: true, data: undefined };
+  } catch (error) {
+    if (error instanceof ApiError) return { success: false, error: error.message };
+    throw error;
+  }
 }

@@ -2,11 +2,11 @@ import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { getAuthenticatedUserFromSession } from '@/features/auth/get-authenticated-user';
 import { getCourseBySlug } from '@/features/courses/course-queries';
-import { listModulesByCourse } from '@/features/modules/module-queries';
-import { listLessonsByModule } from '@/features/lessons/lesson-queries';
+import { getCourseContentTree } from '@/features/courses/course-content-queries';
 import { AddModuleForm } from '@/features/modules/add-module-form';
 import { EditModuleTitleForm } from '@/features/modules/edit-module-title-form';
 import { DeleteModuleButton } from '@/features/modules/delete-module-button';
+import { ModuleOrderControls } from '@/features/modules/module-order-controls';
 import { AddLessonForm } from '@/features/lessons/add-lesson-form';
 import { EditCourseForm } from '@/features/courses/edit-course-form';
 import { PublishToggleButton } from '@/features/courses/publish-toggle-button';
@@ -29,13 +29,7 @@ export default async function InstructorCourseDetailPage({
   if (!course) notFound();
   if (authenticatedUser.role !== 'admin' && course.ownerId !== authenticatedUser.userId) notFound();
 
-  const moduleList = await listModulesByCourse(course.id);
-  const modulesWithLessons = await Promise.all(
-    moduleList.map(async (moduleRecord) => ({
-      moduleRecord,
-      moduleLessons: await listLessonsByModule(moduleRecord.id),
-    })),
-  );
+  const modulesWithLessons = await getCourseContentTree(course.id);
 
   return (
     <main className="mx-auto max-w-3xl px-4 py-10">
@@ -81,8 +75,19 @@ export default async function InstructorCourseDetailPage({
       <section className="mt-8">
         <h2 className="text-lg font-semibold text-slate-900">Modules</h2>
         <div className="mt-4 flex flex-col gap-4">
-          {modulesWithLessons.map(({ moduleRecord, moduleLessons }) => (
+          {modulesWithLessons.map(({ moduleRecord, moduleLessons }, moduleIndex) => (
             <Card key={moduleRecord.id}>
+              <div className="mb-3 flex items-center justify-between gap-2 border-b border-slate-100 pb-3">
+                <span className="text-xs font-bold uppercase tracking-wide text-slate-400">
+                  Module {moduleIndex + 1} of {modulesWithLessons.length}
+                </span>
+                <ModuleOrderControls
+                  moduleId={moduleRecord.id}
+                  moduleTitle={moduleRecord.title}
+                  position={moduleIndex + 1}
+                  moduleCount={modulesWithLessons.length}
+                />
+              </div>
               <div className="flex items-start gap-2">
                 <div className="flex-1">
                   <EditModuleTitleForm key={moduleRecord.title} moduleId={moduleRecord.id} currentTitle={moduleRecord.title} />

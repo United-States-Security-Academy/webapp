@@ -1,95 +1,131 @@
 'use server';
 
-import { asc, eq, inArray } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
-import { db } from '@/db/client';
-import { assessmentAttemptAnswers, assessmentAttempts, assessmentChoices, assessmentQuestions } from '@/db/schema';
 import { ApiError } from '@/api-response/api-error';
 import type { ActionResult } from '@/api-response/action-result';
+import type { AuthenticatedUser } from '@/features/auth/auth-types';
 import { requireAuthenticatedUserFromSession } from '@/features/auth/require-authenticated-user';
 import { getCourseById } from '@/features/courses/course-queries';
+import type { Course } from '@/features/courses/course-types';
 import { requireCourseAssessmentAccess } from './require-course-assessment-access';
-import { getAssessmentByCourseId } from './assessment-queries';
-import { calculateAssessmentScore } from './calculate-assessment-score';
-import type { AssessmentAttempt } from './assessment-types';
+import { getAssessmentByCourseId, getAssessmentWithQuestions } from './assessment-queries';
+import { gradeAssessmentAnswers } from './grade-assessment-answers';
+import {
+  finalizeExpiredSession,
+  getLatestAttempt,
+  getTimedSession,
+  hasTimeRunOut,
+  isAtOrPastDeadline,
+  recordGradedAttempt,
+  saveTimedSessionDraft,
+  startTimedSession,
+  validDraftAnswers,
+} from './timed-assessment-sessions';
+import type { AssessmentAttempt, AssessmentWithQuestions } from './assessment-types';
 
 export interface SubmittedAnswer {
   questionId: string;
   selectedChoiceId: string;
 }
 
-// A single try/catch around the whole thing rather than converting every internal throw: this
-// function has many validation branches, all of which should surface as a real message to the
-// student (not Next.js's generic redacted one) — ApiError is our own "expected, safe to show"
-// error type, so anything else is a genuine bug and is left to throw/redact as normal.
-export async function submitAssessmentAttempt(courseId: string, answers: SubmittedAnswer[]): Promise<ActionResult<AssessmentAttempt>> {
+type LoadedAssessment = { authenticatedUser: AuthenticatedUser; courseRecord: Course; assessment: AssessmentWithQuestions };
+
+// Shared by every learner action: signed in, allowed to take this course's assessment, and the
+// assessment exists. Throws ApiError (shown to the learner) otherwise.
+async function loadAssessmentForLearner(courseId: string): Promise<LoadedAssessment | { error: string }> {
+  const authenticatedUser = await requireAuthenticatedUserFromSession();
+  const courseRecord = await getCourseById(courseId);
+  if (!courseRecord) return { error: 'Course not found.' };
+  await requireCourseAssessmentAccess(authenticatedUser, courseRecord);
+
+  const assessment = await getAssessmentWithQuestions(courseId);
+  if (!assessment) return { error: 'This course has no assessment.' };
+  if (assessment.questions.length === 0) return { error: 'This assessment has no questions yet.' };
+  return { authenticatedUser, courseRecord, assessment };
+}
+
+// Every action wraps its body in a try/catch that turns our own ApiError (an expected, safe-to-show
+// message) into a returned error — Next.js hides thrown Server Action messages in production.
+
+export async function startTimedAssessment(courseId: string): Promise<ActionResult> {
+  try {
+    const loaded = await loadAssessmentForLearner(courseId);
+    if ('error' in loaded) return { success: false, error: loaded.error };
+    const { authenticatedUser, assessment } = loaded;
+    if (!assessment.timeLimitMinutes) return { success: false, error: 'This assessment is not timed.' };
+
+    // An earlier attempt whose time ran out while the learner was away is submitted first.
+    const existingSession = await getTimedSession(assessment.id, authenticatedUser.userId);
+    if (existingSession && hasTimeRunOut(existingSession)) {
+      await finalizeExpiredSession(assessment, existingSession, authenticatedUser.userId);
+    }
+    await startTimedSession(assessment.id, authenticatedUser.userId, assessment.timeLimitMinutes);
+    return { success: true, data: undefined };
+  } catch (error) {
+    if (error instanceof ApiError) return { success: false, error: error.message };
+    throw error;
+  }
+}
+
+// Called as the learner picks answers, so a timed attempt can still be graded on what they had if
+// time runs out after they've closed the tab. Kept light because it runs on every pick: a session
+// only exists if the learner passed the access check when starting, and the saved answers are
+// validated against the question set when the attempt is graded.
+const MAX_DRAFT_ANSWERS = 1000;
+export async function saveTimedAssessmentDraft(courseId: string, answers: Record<string, string>): Promise<ActionResult> {
   try {
     const authenticatedUser = await requireAuthenticatedUserFromSession();
-
-    const courseRecord = await getCourseById(courseId);
-    if (!courseRecord) return { success: false, error: 'Course not found.' };
-    await requireCourseAssessmentAccess(authenticatedUser, courseRecord);
-
     const assessmentRecord = await getAssessmentByCourseId(courseId);
     if (!assessmentRecord) return { success: false, error: 'This course has no assessment.' };
 
-    const questionRows = await db
-      .select()
-      .from(assessmentQuestions)
-      .where(eq(assessmentQuestions.assessmentId, assessmentRecord.id))
-      .orderBy(asc(assessmentQuestions.position));
-    if (questionRows.length === 0) {
-      return { success: false, error: 'This assessment has no questions yet.' };
-    }
+    const session = await getTimedSession(assessmentRecord.id, authenticatedUser.userId);
+    if (!session || hasTimeRunOut(session)) return { success: false, error: 'Time is up for this attempt.' };
 
-    const selectedChoiceIdByQuestionId = new Map(answers.map((answer) => [answer.questionId, answer.selectedChoiceId]));
-    if (questionRows.some((question) => !selectedChoiceIdByQuestionId.has(question.id))) {
-      return { success: false, error: 'Answer every question before submitting.' };
-    }
-
-    const choiceRows = await db
-      .select()
-      .from(assessmentChoices)
-      .where(
-        inArray(
-          assessmentChoices.questionId,
-          questionRows.map((question) => question.id),
-        ),
-      );
-    const correctChoiceIdByQuestionId = new Map(
-      choiceRows.filter((choice) => choice.isCorrect).map((choice) => [choice.questionId, choice.id]),
+    const draftAnswers = Object.fromEntries(
+      Object.entries(answers)
+        .filter(([questionId, choiceId]) => typeof questionId === 'string' && typeof choiceId === 'string')
+        .slice(0, MAX_DRAFT_ANSWERS),
     );
+    await saveTimedSessionDraft(session.id, draftAnswers);
+    return { success: true, data: undefined };
+  } catch (error) {
+    if (error instanceof ApiError) return { success: false, error: error.message };
+    throw error;
+  }
+}
 
-    let correctCount = 0;
-    const answerRecords: { questionId: string; selectedChoiceId: string; isCorrect: boolean }[] = [];
-    for (const question of questionRows) {
-      const selectedChoiceId = selectedChoiceIdByQuestionId.get(question.id);
-      const isValidChoice = choiceRows.some((choice) => choice.id === selectedChoiceId && choice.questionId === question.id);
-      if (!isValidChoice) {
-        return { success: false, error: 'One of the submitted answers is invalid.' };
+export async function submitAssessmentAttempt(courseId: string, answers: SubmittedAnswer[]): Promise<ActionResult<AssessmentAttempt>> {
+  try {
+    const loaded = await loadAssessmentForLearner(courseId);
+    if ('error' in loaded) return { success: false, error: loaded.error };
+    const { authenticatedUser, courseRecord, assessment } = loaded;
+    const submittedAnswers = Object.fromEntries(answers.map((answer) => [answer.questionId, answer.selectedChoiceId]));
+
+    let selectedAnswers = submittedAnswers;
+    let allowUnanswered = false;
+    let timedSessionId: string | null = null;
+
+    if (assessment.timeLimitMinutes) {
+      const session = await getTimedSession(assessment.id, authenticatedUser.userId);
+      if (!session) {
+        // Already submitted (e.g. auto-submitted from another tab) — show that result.
+        const latestAttempt = await getLatestAttempt(assessment.id, authenticatedUser.userId);
+        if (latestAttempt) return { success: true, data: latestAttempt };
+        return { success: false, error: 'Start the assessment before submitting.' };
       }
-      const isCorrect = correctChoiceIdByQuestionId.get(question.id) === selectedChoiceId;
-      if (isCorrect) correctCount += 1;
-      answerRecords.push({ questionId: question.id, selectedChoiceId: selectedChoiceId!, isCorrect });
+      timedSessionId = session.id;
+      allowUnanswered = isAtOrPastDeadline(session);
+      // Arrived well after the deadline: grade only what was saved in time, not answers changed since.
+      if (hasTimeRunOut(session)) selectedAnswers = validDraftAnswers(assessment, session.draftAnswers);
     }
 
-    const totalQuestions = questionRows.length;
-    const { scorePercentage, passed } = calculateAssessmentScore(correctCount, totalQuestions, assessmentRecord.passingScorePercentage);
+    const grading = gradeAssessmentAnswers(assessment.questions, selectedAnswers, { allowUnanswered });
+    if (!grading.success) return { success: false, error: grading.error };
 
-    const [attempt] = await db
-      .insert(assessmentAttempts)
-      .values({
-        assessmentId: assessmentRecord.id,
-        userId: authenticatedUser.userId,
-        correctCount,
-        totalQuestions,
-        scorePercentage,
-        passed,
-      })
-      .returning();
+    const attempt =
+      (await recordGradedAttempt(assessment, authenticatedUser.userId, grading, timedSessionId)) ??
+      (await getLatestAttempt(assessment.id, authenticatedUser.userId));
     if (!attempt) return { success: false, error: 'Failed to record your attempt.' };
-
-    await db.insert(assessmentAttemptAnswers).values(answerRecords.map((answer) => ({ ...answer, attemptId: attempt.id })));
 
     revalidatePath(`/dashboard/courses/${courseRecord.slug}/assessment`);
     return { success: true, data: attempt };

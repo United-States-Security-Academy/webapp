@@ -10,6 +10,7 @@ import { Spinner } from '@/components/ui/spinner';
 import { saveLessonAudioTranscript } from './lesson-audio-transcript-actions';
 import { removeRunningHeadersAndFooters, type PositionedLine } from './remove-running-headers';
 import { tidyTextForSpeech } from './tidy-text-for-speech';
+import { loadLessonPdfBytes } from './lesson-pdf-bytes';
 
 type PlaybackState = 'idle' | 'extracting' | 'playing' | 'paused' | 'error';
 
@@ -61,7 +62,12 @@ function groupTextItemsIntoLines(
   return lines.map((line) => ({ text: line.text, verticalPosition: line.y / viewport.height }));
 }
 
-async function extractPageTexts(fileUrl: string, onProgress: (message: string) => void): Promise<string[]> {
+async function extractPageTexts(
+  fileUrl: string,
+  lessonId: string,
+  pdfVersion: string,
+  onProgress: (message: string) => void,
+): Promise<string[]> {
   // Same runtime-module trick as PdfViewer (lesson-pdf-viewer.tsx) — pdfjs-dist's own bundle
   // breaks under Next's webpack in dev mode, so it's loaded as a real browser ES module from
   // /public instead of through webpack. See that file's comment for the full explanation.
@@ -69,14 +75,10 @@ async function extractPageTexts(fileUrl: string, onProgress: (message: string) =
   const pdfjsLib: typeof PdfjsLib = await import(/* webpackIgnore: true */ '/pdfjs/pdf.min.mjs');
   pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdfjs/pdf.worker.min.mjs';
 
-  // Fetch the bytes ourselves and hand pdfjs the raw data instead of a URL — letting pdfjs
-  // manage the HTTP request against Supabase's signed-URL endpoint (even with range/streaming
-  // disabled) was unreliable and silently returned empty text content on some pages. A plain
-  // browser fetch is well-tested and guaranteed to hand back the complete body.
-  onProgress('Downloading document...');
-  const response = await fetch(fileUrl);
-  if (!response.ok) throw new Error(`Failed to download the PDF (status ${response.status}).`);
-  const pdfBytes = await response.arrayBuffer();
+  // The same bytes the viewer on this page already loaded (or the copy kept on this device), so
+  // Listen doesn't download the PDF a second time.
+  onProgress('Loading document...');
+  const pdfBytes = await loadLessonPdfBytes(fileUrl, lessonId, pdfVersion);
 
   const pdfDocument = await pdfjsLib.getDocument({ data: pdfBytes }).promise;
   const pageLines: PositionedLine[][] = [];
@@ -149,10 +151,12 @@ async function extractPageTexts(fileUrl: string, onProgress: (message: string) =
 // "reading page X of Y" indicator and a page-granularity resume/start point.
 export function PdfAudioPlayer({
   fileUrl,
+  pdfVersion,
   lessonId,
   cachedPages,
 }: {
   fileUrl: string;
+  pdfVersion: string;
   lessonId: string;
   cachedPages: string[] | null;
 }) {
@@ -220,7 +224,7 @@ export function PdfAudioPlayer({
     try {
       let pageTexts = pageTextsRef.current;
       if (!pageTexts) {
-        pageTexts = await extractPageTexts(fileUrl, (message) => {
+        pageTexts = await extractPageTexts(fileUrl, lessonId, pdfVersion, (message) => {
           if (activeTokenRef.current === token) setProgressMessage(message);
         });
         if (activeTokenRef.current !== token) return;

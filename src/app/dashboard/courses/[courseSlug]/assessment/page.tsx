@@ -5,6 +5,8 @@ import { getCourseBySlug } from '@/features/courses/course-queries';
 import { getAssessmentAccessStatus } from '@/features/assessments/require-course-assessment-access';
 import { getAssessmentWithQuestions, listAttemptsForUser, toLearnerView } from '@/features/assessments/assessment-queries';
 import { AssessmentAttemptForm } from '@/features/assessments/assessment-attempt-form';
+import { StartTimedAssessment } from '@/features/assessments/start-timed-assessment';
+import { finalizeExpiredSession, getTimedSession, hasTimeRunOut } from '@/features/assessments/timed-assessment-sessions';
 import { Card } from '@/components/ui/card';
 
 export default async function DashboardCourseAssessmentPage({ params }: { params: Promise<{ courseSlug: string }> }) {
@@ -17,8 +19,19 @@ export default async function DashboardCourseAssessmentPage({ params }: { params
 
   const accessStatus = await getAssessmentAccessStatus(authenticatedUser, course);
   const assessment = await getAssessmentWithQuestions(course.id);
-  const pastAttempts = assessment ? await listAttemptsForUser(assessment.id, authenticatedUser.userId) : [];
   const isAssessmentLive = accessStatus === 'ok' && !!assessment && assessment.questions.length > 0;
+
+  // A timed attempt whose time ran out while the learner was away (tab closed, offline) is
+  // submitted now with the answers saved before the deadline, and they're taken to the result.
+  const timedSession =
+    isAssessmentLive && assessment.timeLimitMinutes ? await getTimedSession(assessment.id, authenticatedUser.userId) : null;
+  if (isAssessmentLive && timedSession && hasTimeRunOut(timedSession)) {
+    const attempt = await finalizeExpiredSession(assessment, timedSession, authenticatedUser.userId);
+    if (attempt) redirect(`/dashboard/courses/${course.slug}/assessment/results/${attempt.id}?timeUp=1`);
+  }
+  const activeTimedSession = timedSession && !hasTimeRunOut(timedSession) ? timedSession : null;
+
+  const pastAttempts = assessment ? await listAttemptsForUser(assessment.id, authenticatedUser.userId) : [];
 
   return (
     <main className="mx-auto max-w-2xl px-4 py-10">
@@ -83,8 +96,25 @@ export default async function DashboardCourseAssessmentPage({ params }: { params
             <h2 className="text-sm font-bold uppercase tracking-wide text-slate-500">
               {pastAttempts.length > 0 ? 'Retake the assessment' : 'Take the assessment'}
             </h2>
-            <p className="mb-3 text-xs text-slate-500">Passing score: {assessment.passingScorePercentage}%</p>
-            <AssessmentAttemptForm courseId={course.id} courseSlug={course.slug} assessment={toLearnerView(assessment)} />
+            <p className="mb-3 text-xs text-slate-500">
+              Passing score: {assessment.passingScorePercentage}%
+              {assessment.timeLimitMinutes && <> &middot; Time limit: {assessment.timeLimitMinutes} minutes</>}
+            </p>
+            {assessment.timeLimitMinutes && !activeTimedSession ? (
+              <StartTimedAssessment
+                courseId={course.id}
+                timeLimitMinutes={assessment.timeLimitMinutes}
+                questionCount={assessment.questions.length}
+              />
+            ) : (
+              <AssessmentAttemptForm
+                courseId={course.id}
+                courseSlug={course.slug}
+                assessment={toLearnerView(assessment)}
+                timer={activeTimedSession ? { remainingMsAtLoad: Math.max(0, activeTimedSession.deadlineAt.getTime() - Date.now()) } : undefined}
+                initialAnswers={activeTimedSession?.draftAnswers}
+              />
+            )}
           </section>
         </>
       )}
