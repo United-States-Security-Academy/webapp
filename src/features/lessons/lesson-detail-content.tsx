@@ -64,7 +64,7 @@ export async function LessonDetailContent({ courseSlug, lessonSlug, basePath }: 
         &larr; {courseRecord.title}
       </Link>
 
-      <div className="mt-4 grid gap-6 lg:grid-cols-[320px_1fr]">
+      <div className="mt-4 grid gap-6 lg:grid-cols-[320px_minmax(0,1fr)]">
         <CourseContentSidebar
           courseSlug={courseRecord.slug}
           basePath={basePath}
