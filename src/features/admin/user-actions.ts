@@ -9,6 +9,7 @@ import { requireRole } from '@/features/auth/require-role';
 import { getSupabaseAdminClient } from '@/supabase/admin-client';
 import type { ActionResult } from '@/api-response/action-result';
 import { getUserById } from './user-queries';
+import { getGovernmentIdValue } from './user-detail-queries';
 
 export async function updateUserRole(userId: string, newRole: UserRole): Promise<ActionResult> {
   const authenticatedUser = await requireAuthenticatedUserFromSession();
@@ -56,4 +57,12 @@ export async function deleteUser(userId: string): Promise<ActionResult> {
   await db.delete(users).where(eq(users.id, userId));
   revalidatePath('/admin/users');
   return { success: true, data: undefined };
+}
+
+// The full government ID is only sent to the browser when an admin clicks "Show" on a user's
+// profile — the page itself only ever contains the masked value.
+export async function revealGovernmentId(userId: string): Promise<ActionResult<string | null>> {
+  const authenticatedUser = await requireAuthenticatedUserFromSession();
+  requireRole(authenticatedUser, ['admin']);
+  return { success: true, data: await getGovernmentIdValue(userId) };
 }

@@ -23,7 +23,12 @@ const REQUIRED_PROFILE_FIELDS = [
   'residentialAddress',
 ] as const satisfies readonly (keyof StudentProfile)[];
 
+export type RequiredProfileField = (typeof REQUIRED_PROFILE_FIELDS)[number];
+
+export function getMissingProfileFields(profile: StudentProfile | null): RequiredProfileField[] {
+  return REQUIRED_PROFILE_FIELDS.filter((field) => !profile?.[field]);
+}
+
 export function isProfileComplete(profile: StudentProfile | null): boolean {
-  if (!profile) return false;
-  return REQUIRED_PROFILE_FIELDS.every((field) => !!profile[field]);
+  return getMissingProfileFields(profile).length === 0;
 }

@@ -6,14 +6,10 @@ import { upsertStudentProfile } from './profile-actions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import type { StudentProfile } from '@/db/schema/student-profiles';
+import { GOVERNMENT_ID_LABEL } from './government-id';
 
 type GovernmentIdType = NonNullable<StudentProfile['governmentIdType']>;
 
-const GOVERNMENT_ID_LABEL: Record<string, string> = {
-  ssnLastFour: 'Last 4 digits of SSN',
-  texasDriversLicense: 'Texas Driver License number',
-  texasIdCard: 'Texas Identification Card number',
-};
 
 function ProfileSummaryField({ label, value }: { label: string; value: string | null | undefined }) {
   return (
