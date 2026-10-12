@@ -6,7 +6,6 @@ import { HowItWorksSection } from '@/features/marketing/how-it-works-section';
 import { TrainingProgramsSection } from '@/features/marketing/training-programs-section';
 import { DashboardPreviewSection } from '@/features/marketing/dashboard-preview-section';
 import { StatsSection } from '@/features/marketing/stats-section';
-import { TestimonialsSection } from '@/features/marketing/testimonials-section';
 import { CtaBannerSection } from '@/features/marketing/cta-banner-section';
 import { FaqSection } from '@/features/marketing/faq-section';
 import { getAuthenticatedUserFromSession } from '@/features/auth/get-authenticated-user';
@@ -70,7 +69,7 @@ export default async function HomePage() {
               TRAINING &amp; CERTIFICATION FOR THOSE WHO PROTECT, SERVE &amp; LEAD.
             </p>
             <p className="mt-4 max-w-xl text-sm leading-relaxed text-slate-300 sm:mt-6">
-              United States Security Academy provides web-based, classroom, and
+              United States Security Academy provides web-based, classroom,
               instructor-led training and certification programs for military
               personnel, law enforcement officers, corrections professionals,
               security personnel, and safety professionals.
@@ -110,7 +109,6 @@ export default async function HomePage() {
       <DashboardPreviewSection />
 
       <StatsSection />
-      <TestimonialsSection />
       <CtaBannerSection />
 
       <section className="bg-navy-900 text-white">

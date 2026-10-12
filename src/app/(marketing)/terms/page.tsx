@@ -26,6 +26,7 @@ const SECTIONS: LegalSection[] = [
     bullets: [
       'Course access is for your own personal training. Course videos, documents and assessments may not be copied, recorded, shared or resold.',
       'A certificate is issued only after you complete the required lessons and pass any required assessment.',
+      'Some assessments are timed. The timer starts when you press Start and keeps running if you leave or refresh the page. When time runs out, your answers are submitted automatically and any unanswered questions are marked incorrect.',
       'Certificates confirm completion of USSA training. Whether a certificate satisfies a licensing or employment requirement is decided by the relevant regulator or employer.',
       'We may update course content to keep it accurate and current.',
     ],
@@ -79,7 +80,7 @@ export default function TermsPage() {
     <LegalDocument
       title="Terms & Conditions"
       subtitle="The terms that apply when you use our website and courses."
-      lastUpdated="October 10, 2026"
+      lastUpdated="October 12, 2026"
       sections={SECTIONS}
     />
   );

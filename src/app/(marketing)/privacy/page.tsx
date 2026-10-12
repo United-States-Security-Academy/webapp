@@ -18,8 +18,9 @@ const SECTIONS: LegalSection[] = [
     bullets: [
       'Account details: your name, email address and password (passwords are handled by our authentication provider and are never visible to us).',
       'Student profile details required to issue certificates: your full legal name, the type and number of the government identification you provide (such as the last four digits of your Social Security number, or a Texas driver license or ID card number), phone number, residential address, city, state, country and a profile photo.',
-      'Learning records: the courses you enroll in, the lessons you complete, your assessment attempts and answers, and the certificates you earn.',
-      'Payment records: the course purchased, the amount, the currency and the payment status. Card details are entered directly with our payment processor, Stripe, and are never sent to or stored by us.',
+      'Learning records: the courses you enroll in, the lessons you complete, your assessment attempts and answers (including answers saved while a timed assessment is in progress), and the certificates you earn.',
+      'Payment records: the course purchased, the amount, the currency, the payment status and any discount code used. Card details are entered directly with our payment processor, Stripe, and are never sent to or stored by us.',
+      'Technical information: like any website, our hosting providers automatically record details such as your IP address, browser type and the pages you request, to keep the service secure and running.',
       'Messages you send us, for example through our contact details.',
     ],
   },
@@ -38,9 +39,10 @@ const SECTIONS: LegalSection[] = [
     paragraphs: ['We do not sell your personal information, and we do not use advertising or analytics trackers on this site.'],
   },
   {
-    heading: 'Cookies',
+    heading: 'Cookies and storage on your device',
     paragraphs: [
       'We use only the cookies needed to keep you signed in and to keep your session secure. We do not use advertising or cross-site tracking cookies.',
+      'To make lessons load faster, copies of course documents (PDFs) you open are kept in your browser’s storage on your device. They are deleted when you sign out.',
     ],
   },
   {
@@ -53,13 +55,13 @@ const SECTIONS: LegalSection[] = [
       'Vercel — website hosting.',
       'Cloudflare — video streaming for course lessons.',
       'Stripe — payment processing.',
-      'Sentry — error monitoring, so we can find and fix problems with the site. Error reports contain technical details about the problem, not your profile, payment or identification details.',
+      'Sentry — error monitoring, so we can find and fix problems with the site. It receives technical details about errors and a sample of page-load timings, not your profile, payment or identification details.',
     ],
   },
   {
     heading: 'How we protect it',
     paragraphs: [
-      'Information is sent over encrypted connections (HTTPS) and stored with our providers. Access to student records is limited to authorized USSA staff and instructors who need it to deliver training. No system is perfectly secure, but we take reasonable steps to protect your information.',
+      'Information is sent over encrypted connections (HTTPS) and stored with our providers. Only authorized USSA administrators can view student profiles, including identification details, which they use to issue and verify certificates; identification numbers stay hidden until an administrator deliberately reveals them. Instructors see course-level information, not your personal details. No system is perfectly secure, but we take reasonable steps to protect your information.',
     ],
   },
   {
@@ -93,7 +95,7 @@ export default function PrivacyPolicyPage() {
     <LegalDocument
       title="Privacy Policy"
       subtitle="How we collect, use and protect your personal information."
-      lastUpdated="October 10, 2026"
+      lastUpdated="October 12, 2026"
       sections={SECTIONS}
     />
   );

@@ -41,9 +41,6 @@ export function SiteFooter() {
             <li className="flex items-center gap-2">
               <Icon name="mail" className="h-4 w-4" /> info@ussa-academy.com
             </li>
-            <li className="flex items-center gap-2">
-              <Icon name="globe" className="h-4 w-4" /> www.ussa-academy.com
-            </li>
           </ul>
         </div>
 
