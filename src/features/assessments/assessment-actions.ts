@@ -7,6 +7,7 @@ import { assessmentChoices, assessmentQuestions, assessmentTimedSessions, course
 import type { ActionResult } from '@/api-response/action-result';
 import { requireAuthenticatedUserFromSession } from '@/features/auth/require-authenticated-user';
 import { requireCourseOwnership } from '@/features/courses/require-course-ownership';
+import { pickFields } from '@/pick-fields';
 import { getCourseById } from '@/features/courses/course-queries';
 import { getCourseIdByAssessmentId, getCourseIdByChoiceId, getCourseIdByQuestionId } from './assessment-queries';
 import type { AssessmentChoice, AssessmentQuestion, CourseAssessment } from './assessment-types';
@@ -22,6 +23,9 @@ export async function createOrUpdateAssessment(
 ): Promise<ActionResult<CourseAssessment>> {
   const authenticatedUser = await requireAuthenticatedUserFromSession();
   await requireCourseOwnership(authenticatedUser, courseId);
+  // Only the settings form's fields: a courseId sent by the caller could otherwise move the exam
+  // to a course they don't own.
+  input = pickFields(input, ['title', 'passingScorePercentage', 'timeLimitMinutes']);
 
   if (
     input.timeLimitMinutes !== undefined &&
