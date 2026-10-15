@@ -42,6 +42,9 @@ export async function LessonDetailContent({ courseSlug, lessonSlug, basePath }: 
   if (!hasLessonAccess(authenticatedUser, lessonRecord, courseRecord.ownerId, isEnrolled)) redirect(`${basePath}/${courseRecord.slug}`);
 
   const isOwnerOrAdmin = authenticatedUser.role === 'admin' || authenticatedUser.userId === courseRecord.ownerId;
+  // A course switched to structured lessons no longer shows its PDF lessons to students (old
+  // bookmarks land on the course page); the owner and admins can still open them.
+  if (courseRecord.deliveryFormat === 'structured' && !isOwnerOrAdmin) redirect(`${basePath}/${courseRecord.slug}`);
   const hasFullAccess = isOwnerOrAdmin || isEnrolled;
 
   const progress = computeCourseProgress(

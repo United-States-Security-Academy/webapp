@@ -12,9 +12,14 @@ import { EditCourseForm } from '@/features/courses/edit-course-form';
 import { PublishToggleButton } from '@/features/courses/publish-toggle-button';
 import { DeleteCourseButton } from '@/features/courses/delete-course-button';
 import { CourseThumbnailUploader } from '@/features/courses/course-thumbnail-uploader';
+import { StructuredModulesSection } from '@/features/structured-courses/structured-modules-section';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+
+// Converting an uploaded Word module (a Server Action on this page) can take longer than the
+// default function time limit for large files with many pictures.
+export const maxDuration = 60;
 
 export default async function InstructorCourseDetailPage({
   params,
@@ -117,6 +122,8 @@ export default async function InstructorCourseDetailPage({
           <AddModuleForm courseId={course.id} />
         </div>
       </section>
+
+      <StructuredModulesSection courseId={course.id} courseSlug={course.slug} deliveryFormat={course.deliveryFormat} />
     </main>
   );
 }

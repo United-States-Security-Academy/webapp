@@ -15,6 +15,8 @@ import { getCourseContentTrees, listLessonsInOrder } from '@/features/courses/co
 import { computeCourseProgress, listCompletedLessonsForUser, type CourseProgress } from '@/features/progress/course-progress-queries';
 import { getRequiredAssessmentStatuses } from '@/features/assessments/assessment-queries';
 import type { Course } from '@/features/courses/course-types';
+import { getStructuredCourseOutlines } from '@/features/structured-courses/structured-course-outline-queries';
+import { computeStructuredCourseProgress } from '@/features/structured-courses/structured-course-progress';
 
 export type EnrolledCourseStatus = 'not_started' | 'in_progress' | 'exam_pending' | 'certified';
 
@@ -67,15 +69,21 @@ export async function getUserDetail(userId: string) {
   if (!user) return null;
 
   const enrolledCourseIds = enrollmentRows.map(({ course }) => course.id);
-  const [contentTrees, assessmentStatuses] = await Promise.all([
+  const structuredCourseIds = enrollmentRows.filter(({ course }) => course.deliveryFormat === 'structured').map(({ course }) => course.id);
+  const [contentTrees, assessmentStatuses, structuredOutlines] = await Promise.all([
     getCourseContentTrees(enrolledCourseIds),
     getRequiredAssessmentStatuses(userId, enrolledCourseIds),
+    getStructuredCourseOutlines(structuredCourseIds, userId),
   ]);
   const completedAtByLessonId = new Map(completedLessons.map((row) => [row.lessonId, row.completedAt]));
 
   const enrolledCourses: AdminUserCourse[] = enrollmentRows.map(({ enrollment, course }) => {
     const lessonIds = listLessonsInOrder(contentTrees.get(course.id) ?? []).map((lesson) => lesson.id);
-    const progress = computeCourseProgress(lessonIds, completedAtByLessonId);
+    // Progress in the lessons the course delivers now (structured courses: published modules).
+    const progress =
+      course.deliveryFormat === 'structured'
+        ? computeStructuredCourseProgress(structuredOutlines.get(course.id) ?? [])
+        : computeCourseProgress(lessonIds, completedAtByLessonId);
     const courseAttempts = attemptRows.filter((row) => row.courseId === course.id);
     const hasPassedExam = assessmentStatuses.get(course.id)?.hasPassed ?? true;
     const status: EnrolledCourseStatus =

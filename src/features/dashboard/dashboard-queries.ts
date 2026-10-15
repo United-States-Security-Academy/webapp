@@ -10,6 +10,12 @@ import {
 } from '@/features/progress/course-progress-queries';
 import { getRequiredAssessmentStatuses } from '@/features/assessments/assessment-queries';
 import type { Course } from '@/features/courses/course-types';
+import { getStructuredCourseOutlines } from '@/features/structured-courses/structured-course-outline-queries';
+import {
+  buildStructuredLessonHref,
+  computeStructuredCourseProgress,
+  findContinueLesson,
+} from '@/features/structured-courses/structured-course-progress';
 
 export interface EnrolledCourseSummary {
   course: Course;
@@ -18,6 +24,8 @@ export interface EnrolledCourseSummary {
   // The next lesson the learner hasn't completed yet, to power a "Continue" deep link.
   // Null only when the course has no lessons at all.
   nextLessonSlug: string | null;
+  // Structured courses: the full link to the lesson to continue with (their lessons aren't slugs).
+  nextLessonHref?: string | null;
   // True when the course has no published assessment, or the learner has a passing attempt on
   // it — a course finishing all its lessons isn't enough to certify if it also has an
   // assessment the learner hasn't passed yet.
@@ -34,14 +42,28 @@ export async function listEnrolledCoursesWithProgress(
 ): Promise<EnrolledCourseSummary[]> {
   const enrollmentRows = await listEnrollmentsByUser(userId);
   const courseIds = enrollmentRows.map(({ course }) => course.id);
-  const [contentTrees, assessmentStatuses] = await Promise.all([
+  const structuredCourseIds = enrollmentRows.filter(({ course }) => course.deliveryFormat === 'structured').map(({ course }) => course.id);
+  const [contentTrees, assessmentStatuses, structuredOutlines] = await Promise.all([
     getCourseContentTrees(courseIds),
     getRequiredAssessmentStatuses(userId, courseIds),
+    getStructuredCourseOutlines(structuredCourseIds, userId),
   ]);
   const completedLessons = await completedLessonsPromise;
   const completedAtByLessonId = new Map(completedLessons.map((row) => [row.lessonId, row.completedAt]));
 
   return enrollmentRows.map(({ enrollment, course }) => {
+    if (course.deliveryFormat === 'structured') {
+      const outline = structuredOutlines.get(course.id) ?? [];
+      const continueLesson = findContinueLesson(outline);
+      return {
+        course,
+        progress: computeStructuredCourseProgress(outline),
+        enrolledAt: enrollment.enrolledAt,
+        nextLessonSlug: null,
+        nextLessonHref: continueLesson ? buildStructuredLessonHref('/dashboard/courses', course.slug, continueLesson) : null,
+        hasPassedRequiredAssessment: assessmentStatuses.get(course.id)?.hasPassed ?? true,
+      };
+    }
     const lessonsInOrder = listLessonsInOrder(contentTrees.get(course.id) ?? []);
     const nextLesson = lessonsInOrder.find((lesson) => !completedAtByLessonId.has(lesson.id)) ?? lessonsInOrder[0];
     return {

@@ -14,6 +14,13 @@ import { EnrollButton } from '@/features/enrollments/enroll-button';
 import { CheckoutButton } from '@/features/payments/checkout-button';
 import { CourseDetailOverview } from '@/features/courses/course-detail-overview';
 import { formatCoursePrice } from '@/features/courses/format-course-price';
+import { getStructuredCourseOutlines } from '@/features/structured-courses/structured-course-outline-queries';
+import {
+  buildStructuredLessonHref,
+  computeStructuredCourseProgress,
+  findContinueLesson,
+} from '@/features/structured-courses/structured-course-progress';
+import { StructuredCourseOutline } from '@/features/structured-courses/structured-course-outline';
 
 interface CourseDetailContentProps {
   courseSlug: string;
@@ -31,21 +38,29 @@ export async function CourseDetailContent({ courseSlug, basePath }: CourseDetail
     !!authenticatedUser && (authenticatedUser.role === 'admin' || authenticatedUser.userId === courseRecord.ownerId);
   if (courseRecord.status !== 'published' && !isOwnerOrAdmin) notFound();
 
+  // Structured courses show their published Word-upload modules instead of the PDF lessons.
+  const isStructured = courseRecord.deliveryFormat === 'structured';
+
   // One parallel wave: course content, plus this learner's enrollment, progress and exam status.
-  const [modulesWithLessons, isEnrolled, completedAtByLessonId, assessmentStatuses] = await Promise.all([
+  const [modulesWithLessons, isEnrolled, completedAtByLessonId, assessmentStatuses, structuredOutlines] = await Promise.all([
     getCourseContentTree(courseRecord.id),
     authenticatedUser ? isUserEnrolledInCourse(authenticatedUser.userId, courseRecord.id) : false,
     authenticatedUser ? getCompletedLessonTimes(authenticatedUser.userId, [courseRecord.id]) : new Map<string, Date>(),
     authenticatedUser ? getRequiredAssessmentStatuses(authenticatedUser.userId, [courseRecord.id]) : null,
+    isStructured ? getStructuredCourseOutlines([courseRecord.id], authenticatedUser?.userId ?? null) : null,
   ]);
   const hasFullAccess = isOwnerOrAdmin || isEnrolled;
+  const structuredOutline = structuredOutlines ? (structuredOutlines.get(courseRecord.id) ?? []) : null;
+  const continueLesson = structuredOutline ? findContinueLesson(structuredOutline) : null;
 
-  const progress = authenticatedUser
-    ? computeCourseProgress(
-        listLessonsInOrder(modulesWithLessons).map((lesson) => lesson.id),
-        completedAtByLessonId,
-      )
-    : { totalLessons: 0, completedLessons: 0, completedAt: null };
+  const progress = !authenticatedUser
+    ? { totalLessons: 0, completedLessons: 0, completedAt: null }
+    : structuredOutline
+      ? computeStructuredCourseProgress(structuredOutline)
+      : computeCourseProgress(
+          listLessonsInOrder(modulesWithLessons).map((lesson) => lesson.id),
+          completedAtByLessonId,
+        );
   const completedLessonIds = new Set(completedAtByLessonId.keys());
 
   const isFree = courseRecord.priceAmountMinor === 0;
@@ -67,6 +82,11 @@ export async function CourseDetailContent({ courseSlug, basePath }: CourseDetail
       <div className="mx-auto grid max-w-5xl gap-8 px-4 lg:grid-cols-[2fr_1fr]">
       <div>
         <h2 className="text-lg font-bold text-slate-900">Course content</h2>
+        {structuredOutline ? (
+          <div className="mt-4">
+            <StructuredCourseOutline outline={structuredOutline} courseSlug={courseRecord.slug} basePath={basePath} hasFullAccess={hasFullAccess} />
+          </div>
+        ) : (
         <div className="mt-4 flex flex-col gap-4">
           {modulesWithLessons.map(({ moduleRecord, moduleLessons }) => (
             <Card key={moduleRecord.id}>
@@ -107,6 +127,7 @@ export async function CourseDetailContent({ courseSlug, basePath }: CourseDetail
           ))}
           {modulesWithLessons.length === 0 && <p className="text-sm text-slate-500">Course content is coming soon.</p>}
         </div>
+        )}
       </div>
 
       <div>
@@ -117,6 +138,14 @@ export async function CourseDetailContent({ courseSlug, basePath }: CourseDetail
             hasFullAccess ? (
               <div className="mt-4">
                 <ProgressBar completed={progress.completedLessons} total={progress.totalLessons} />
+                {continueLesson && !isCourseComplete && (
+                  <Link
+                    href={buildStructuredLessonHref(basePath, courseRecord.slug, continueLesson)}
+                    className="mt-4 inline-flex w-full items-center justify-center gap-1 rounded-md bg-navy-900 px-4 py-2 text-sm font-medium text-white hover:bg-navy-800"
+                  >
+                    {progress.completedLessons === 0 ? 'Start the course' : 'Continue where you left off'} <span aria-hidden>&rarr;</span>
+                  </Link>
+                )}
                 {isCourseComplete && hasPassedAssessment && (
                   <Link
                     href={`/dashboard/certificates/${courseRecord.slug}`}

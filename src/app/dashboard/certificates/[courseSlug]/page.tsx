@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
 import { getAuthenticatedUserFromSession } from '@/features/auth/get-authenticated-user';
 import { getCourseBySlug } from '@/features/courses/course-queries';
-import { getCourseModuleProgress } from '@/features/progress/course-progress-queries';
+import { getLearnerCourseProgress } from '@/features/progress/learner-course-progress';
 import { hasPassedRequiredAssessment } from '@/features/assessments/assessment-queries';
 import { getStudentProfile } from '@/features/profile/profile-queries';
 import { PrintCertificateButton } from '@/features/dashboard/print-certificate-button';
@@ -15,7 +15,7 @@ export default async function CertificatePage({ params }: { params: Promise<{ co
   const courseRecord = await getCourseBySlug(courseSlug);
   if (!courseRecord) redirect('/dashboard');
 
-  const progress = await getCourseModuleProgress(authenticatedUser.userId, courseRecord.id);
+  const progress = await getLearnerCourseProgress(authenticatedUser.userId, courseRecord);
   if (!progress.completedAt) redirect('/dashboard');
 
   const hasPassed = await hasPassedRequiredAssessment(authenticatedUser.userId, courseRecord.id);
