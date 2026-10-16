@@ -5,10 +5,12 @@ import { DashboardSearchForm } from '@/features/dashboard/dashboard-search-form'
 import type { AuthenticatedUser } from '@/features/auth/auth-types';
 import { ConsoleSidebar, ConsoleSidebarContent } from './console-sidebar';
 import type { ConsoleVariant } from './console-nav-links';
+import { getThemePreference } from '@/features/theme/get-theme-preference';
+import { ThemeScope } from '@/features/theme/theme-scope';
 
 // The sidebar + top bar frame shared by the admin console and the instructor portal, so moving
 // between /admin and /instructor pages keeps the same navigation.
-export function ConsoleShell({ authenticatedUser, children }: { authenticatedUser: AuthenticatedUser; children: React.ReactNode }) {
+export async function ConsoleShell({ authenticatedUser, children }: { authenticatedUser: AuthenticatedUser; children: React.ReactNode }) {
   const variant: ConsoleVariant = authenticatedUser.role === 'admin' ? 'admin' : 'instructor';
   const { displayName, email } = authenticatedUser;
   const initials = displayName
@@ -17,9 +19,10 @@ export function ConsoleShell({ authenticatedUser, children }: { authenticatedUse
     .slice(0, 2)
     .join('')
     .toUpperCase();
+  const themePreference = await getThemePreference();
 
   return (
-    <div className="flex min-h-screen bg-slate-100">
+    <ThemeScope initialPreference={themePreference} className="flex min-h-screen bg-slate-100 dark:bg-[#0a1120] dark:text-slate-900">
       <ConsoleSidebar variant={variant} displayName={displayName} email={email} />
 
       <div className="min-w-0 flex-1">
@@ -54,6 +57,6 @@ export function ConsoleShell({ authenticatedUser, children }: { authenticatedUse
 
         {children}
       </div>
-    </div>
+    </ThemeScope>
   );
 }

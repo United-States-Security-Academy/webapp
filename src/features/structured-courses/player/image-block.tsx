@@ -45,7 +45,7 @@ export function ImageBlock({ url, alt }: { url: string | undefined; alt: string 
         ref={dialogRef}
         onClose={() => setIsOpen(false)}
         onClick={close}
-        className="m-0 h-full max-h-none w-full max-w-none bg-transparent p-0 backdrop:bg-black/90"
+        className="theme-fixed m-0 h-full max-h-none w-full max-w-none bg-transparent p-0 backdrop:bg-black/90"
         aria-label={alt || 'Picture'}
       >
         {isOpen && (

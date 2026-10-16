@@ -11,7 +11,7 @@ export function CertificateDocument({
   completedAt: Date;
 }) {
   return (
-    <div className="relative border-[10px] border-double border-navy-900 bg-white px-8 py-14 text-center sm:px-16">
+    <div className="theme-fixed relative border-[10px] border-double border-navy-900 bg-white px-8 py-14 text-center sm:px-16">
       <div className="absolute inset-3 border border-gold-500/60" />
 
       <div className="relative flex flex-col items-center">

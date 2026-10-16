@@ -129,7 +129,7 @@ export async function LessonDetailContent({ courseSlug, lessonSlug, basePath }: 
                 <p className="text-sm text-slate-500">This lesson&apos;s document has not been uploaded yet.</p>
               )
             ) : (
-              <div className="flex aspect-video items-center justify-center rounded-lg bg-navy-950 text-sm text-slate-300">
+              <div className="theme-fixed flex aspect-video items-center justify-center rounded-lg bg-navy-950 text-sm text-slate-300">
                 Video playback is coming soon.
               </div>
             )}

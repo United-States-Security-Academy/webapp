@@ -5,18 +5,20 @@ import { getAuthenticatedUserFromSession } from '@/features/auth/get-authenticat
 import { getStudentProfile, isProfileComplete } from '@/features/profile/profile-queries';
 import { DashboardSidebar, DashboardSidebarContent } from '@/features/dashboard/dashboard-sidebar';
 import { SidebarDrawer } from '@/components/layout/sidebar-drawer';
+import { getThemePreference } from '@/features/theme/get-theme-preference';
+import { ThemeScope } from '@/features/theme/theme-scope';
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const authenticatedUser = await getAuthenticatedUserFromSession();
   if (!authenticatedUser) redirect('/sign-in');
 
-  const profile = await getStudentProfile(authenticatedUser.userId);
+  const [profile, themePreference] = await Promise.all([getStudentProfile(authenticatedUser.userId), getThemePreference()]);
 
   const displayName = profile?.legalName || authenticatedUser.displayName;
   const hasCompleteProfile = isProfileComplete(profile);
 
   return (
-    <div className="flex min-h-screen bg-slate-50 print:block">
+    <ThemeScope initialPreference={themePreference} className="flex min-h-screen bg-slate-50 print:block dark:bg-[#0a1120] dark:text-slate-900">
       <DashboardSidebar displayName={displayName} isProfileComplete={hasCompleteProfile} />
 
       <div className="min-w-0 flex-1">
@@ -32,6 +34,6 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
         {children}
       </div>
-    </div>
+    </ThemeScope>
   );
 }
