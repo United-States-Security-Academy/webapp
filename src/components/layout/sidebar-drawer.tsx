@@ -65,7 +65,7 @@ export function SidebarDrawer({ label, children }: { label: string; children: Re
               aria-modal="true"
               aria-label={label}
               onClick={handleMenuClick}
-              className={`absolute inset-y-0 left-0 flex w-72 max-w-[85vw] flex-col overflow-y-auto bg-navy-950 px-4 py-6 text-white shadow-xl transition-transform ${
+              className={`theme-fixed absolute inset-y-0 left-0 flex w-72 max-w-[85vw] flex-col overflow-y-auto bg-navy-950 px-4 py-6 text-white shadow-xl transition-transform ${
                 isOpen ? 'translate-x-0' : '-translate-x-full'
               }`}
             >

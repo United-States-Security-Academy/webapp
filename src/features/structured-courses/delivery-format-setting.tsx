@@ -77,7 +77,7 @@ export function DeliveryFormatSetting({
       <dialog
         ref={dialogRef}
         aria-labelledby="delivery-format-dialog-title"
-        className="w-[calc(100%-2rem)] max-w-lg rounded-xl p-0 shadow-xl backdrop:bg-slate-900/50"
+        className="w-[calc(100%-2rem)] max-w-lg rounded-xl bg-white p-0 shadow-xl backdrop:bg-black/50"
       >
         <div className="p-5 sm:p-6">
           <h3 id="delivery-format-dialog-title" className="text-lg font-semibold text-slate-900">

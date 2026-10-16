@@ -358,7 +358,7 @@ export function PdfViewer({ fileUrl, lessonId, pdfVersion }: { fileUrl: string; 
       ref={rootRef}
       className={`overflow-hidden bg-white [contain:inline-size] ${isFullscreen ? 'fixed inset-0 z-[60] flex flex-col' : 'rounded-lg border border-slate-200'}`}
     >
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 bg-navy-950 px-3 py-2 text-white">
+      <div className="theme-fixed flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 bg-navy-950 px-3 py-2 text-white">
         <div className="flex items-center gap-2">
           <button
             type="button"

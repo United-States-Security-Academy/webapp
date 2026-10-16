@@ -86,7 +86,7 @@ export function EnrollmentTrendChart({ dailyEnrollments }: { dailyEnrollments: D
 
           {gridValues.map((gridValue) => (
             <g key={gridValue}>
-              <line x1={PADDING.left} x2={CHART_WIDTH - PADDING.right} y1={yFor(gridValue)} y2={yFor(gridValue)} stroke="#e2e8f0" strokeWidth="1" />
+              <line x1={PADDING.left} x2={CHART_WIDTH - PADDING.right} y1={yFor(gridValue)} y2={yFor(gridValue)} style={{ stroke: 'rgb(var(--c-slate-200))' }} strokeWidth="1" />
               <text x={PADDING.left - 8} y={yFor(gridValue)} textAnchor="end" dominantBaseline="middle" className="fill-slate-400 text-[10px]">
                 {Number.isInteger(gridValue) ? gridValue : gridValue.toFixed(1)}
               </text>
@@ -102,7 +102,7 @@ export function EnrollmentTrendChart({ dailyEnrollments }: { dailyEnrollments: D
           )}
 
           <path d={areaPath} fill="url(#enrollment-area-fill)" />
-          <path d={linePath} fill="none" stroke="#122a52" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
+          <path d={linePath} fill="none" style={{ stroke: 'rgb(var(--c-navy-text-800))' }} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
 
           {hoveredPoint && hoveredIndex !== null && (
             <g>
@@ -111,11 +111,11 @@ export function EnrollmentTrendChart({ dailyEnrollments }: { dailyEnrollments: D
                 x2={xFor(hoveredIndex)}
                 y1={PADDING.top}
                 y2={yFor(0)}
-                stroke="#94a3b8"
+                style={{ stroke: 'rgb(var(--c-slate-400))' }}
                 strokeWidth="1"
                 strokeDasharray="3 3"
               />
-              <circle cx={xFor(hoveredIndex)} cy={yFor(hoveredPoint.count)} r="5" fill="#c6a15b" stroke="#ffffff" strokeWidth="2" />
+              <circle cx={xFor(hoveredIndex)} cy={yFor(hoveredPoint.count)} r="5" fill="#c6a15b" style={{ stroke: 'rgb(var(--c-surface))' }} strokeWidth="2" />
             </g>
           )}
 

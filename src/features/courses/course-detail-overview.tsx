@@ -48,7 +48,7 @@ export function CourseDetailOverview({
   return (
     <div className="flex flex-col gap-8">
       {(courseCode || tagline || (quickFacts && quickFacts.length > 0)) && (
-        <div className="overflow-hidden rounded-lg bg-navy-950 text-white">
+        <div className="theme-fixed overflow-hidden rounded-lg bg-navy-950 text-white">
           <div className="p-6 sm:p-8">
             {courseCode && <p className="text-xs font-bold tracking-[0.2em] text-gold-400">{courseCode}</p>}
             {tagline && <h2 className="mt-2 text-xl font-extrabold leading-snug sm:text-2xl">{tagline}</h2>}

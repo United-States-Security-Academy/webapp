@@ -1,3 +1,171 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Theme colours (see tailwind.config.ts and src/features/theme). These defaults are Tailwind's
+   own colours, so pages outside a dark ThemeScope — the home page and every other marketing page —
+   look exactly as they always have. .theme-fixed keeps an area light-mode inside a dark dashboard
+   (the navy sidebars, the certificate). */
+:root,
+.theme-fixed {
+  --c-surface: 255 255 255;
+  --c-slate-50: 248 250 252;
+  --c-slate-100: 241 245 249;
+  --c-slate-200: 226 232 240;
+  --c-slate-300: 203 213 225;
+  --c-slate-400: 148 163 184;
+  --c-slate-500: 100 116 139;
+  --c-slate-600: 71 85 105;
+  --c-slate-700: 51 65 85;
+  --c-slate-800: 30 41 59;
+  --c-slate-900: 15 23 42;
+  --c-slate-950: 2 6 23;
+  --c-slate-bg-600: 71 85 105;
+  --c-slate-bg-700: 51 65 85;
+  --c-slate-bg-800: 30 41 59;
+  --c-slate-bg-900: 15 23 42;
+  --c-slate-bg-950: 2 6 23;
+  --c-navy-text-800: 18 42 82;
+  --c-navy-text-900: 11 30 61;
+  --c-navy-bg-800: 18 42 82;
+  --c-navy-bg-900: 11 30 61;
+  --c-navy-border-800: 18 42 82;
+  --c-navy-border-900: 11 30 61;
+  --c-gold-text-600: 179 137 63;
+  --c-red-50: 254 242 242;
+  --c-red-100: 254 226 226;
+  --c-red-200: 254 202 202;
+  --c-red-600: 220 38 38;
+  --c-red-700: 185 28 28;
+  --c-red-800: 153 27 27;
+  --c-red-900: 127 29 29;
+  --c-green-50: 240 253 244;
+  --c-green-100: 220 252 231;
+  --c-green-200: 187 247 208;
+  --c-green-600: 22 163 74;
+  --c-green-700: 21 128 61;
+  --c-green-800: 22 101 52;
+  --c-green-900: 20 83 45;
+  --c-amber-50: 255 251 235;
+  --c-amber-100: 254 243 199;
+  --c-amber-200: 253 230 138;
+  --c-amber-600: 217 119 6;
+  --c-amber-700: 180 83 9;
+  --c-amber-800: 146 64 14;
+  --c-amber-900: 120 53 15;
+}
+
+.theme-fixed {
+  color-scheme: light;
+}
+
+/* Form fields without a background class take the card colour instead of the browser's grey
+   dark-mode field. :where() keeps this at zero specificity, so any bg-* class still wins. */
+:where(.theme-dark, .theme-system) :where(input, select, textarea) {
+  background-color: rgb(var(--c-surface));
+}
+
+/* Dark values. The same block appears twice — once for "Dark", once for "System" on a device set
+   to dark mode — because plain CSS can't share one rule between the two. Keep them identical.
+   Screen only: printing (certificates, lessons) always uses the light colours. */
+@media screen {
+  .theme-dark {
+    color-scheme: dark;
+    --c-surface: 17 26 45;
+    --c-slate-50: 23 34 56;
+    --c-slate-100: 28 40 64;
+    --c-slate-200: 38 51 77;
+    --c-slate-300: 51 66 96;
+    --c-slate-400: 107 120 145;
+    --c-slate-500: 139 151 171;
+    --c-slate-600: 163 174 192;
+    --c-slate-700: 192 201 214;
+    --c-slate-800: 217 223 232;
+    --c-slate-900: 232 236 242;
+    --c-slate-950: 243 245 248;
+    --c-slate-bg-600: 71 85 105;
+    --c-slate-bg-700: 58 75 107;
+    --c-slate-bg-800: 45 60 90;
+    --c-slate-bg-900: 37 51 80;
+    --c-slate-bg-950: 20 30 50;
+    --c-navy-text-800: 203 213 225;
+    --c-navy-text-900: 232 236 242;
+    --c-navy-bg-800: 40 66 112;
+    --c-navy-bg-900: 30 52 92;
+    --c-navy-border-800: 90 110 150;
+    --c-navy-border-900: 90 110 150;
+    --c-gold-text-600: 212 176 106;
+    --c-red-50: 45 22 32;
+    --c-red-100: 60 26 36;
+    --c-red-200: 100 40 50;
+    --c-red-600: 248 113 113;
+    --c-red-700: 252 165 165;
+    --c-red-800: 254 202 202;
+    --c-red-900: 254 226 226;
+    --c-green-50: 16 44 34;
+    --c-green-100: 20 56 42;
+    --c-green-200: 30 90 60;
+    --c-green-600: 74 222 128;
+    --c-green-700: 134 239 172;
+    --c-green-800: 187 247 208;
+    --c-green-900: 220 252 231;
+    --c-amber-50: 48 36 16;
+    --c-amber-100: 62 46 18;
+    --c-amber-200: 110 80 20;
+    --c-amber-600: 251 191 36;
+    --c-amber-700: 252 211 77;
+    --c-amber-800: 253 230 138;
+    --c-amber-900: 254 243 199;
+  }
+}
+
+@media screen and (prefers-color-scheme: dark) {
+  .theme-system {
+    color-scheme: dark;
+    --c-surface: 17 26 45;
+    --c-slate-50: 23 34 56;
+    --c-slate-100: 28 40 64;
+    --c-slate-200: 38 51 77;
+    --c-slate-300: 51 66 96;
+    --c-slate-400: 107 120 145;
+    --c-slate-500: 139 151 171;
+    --c-slate-600: 163 174 192;
+    --c-slate-700: 192 201 214;
+    --c-slate-800: 217 223 232;
+    --c-slate-900: 232 236 242;
+    --c-slate-950: 243 245 248;
+    --c-slate-bg-600: 71 85 105;
+    --c-slate-bg-700: 58 75 107;
+    --c-slate-bg-800: 45 60 90;
+    --c-slate-bg-900: 37 51 80;
+    --c-slate-bg-950: 20 30 50;
+    --c-navy-text-800: 203 213 225;
+    --c-navy-text-900: 232 236 242;
+    --c-navy-bg-800: 40 66 112;
+    --c-navy-bg-900: 30 52 92;
+    --c-navy-border-800: 90 110 150;
+    --c-navy-border-900: 90 110 150;
+    --c-gold-text-600: 212 176 106;
+    --c-red-50: 45 22 32;
+    --c-red-100: 60 26 36;
+    --c-red-200: 100 40 50;
+    --c-red-600: 248 113 113;
+    --c-red-700: 252 165 165;
+    --c-red-800: 254 202 202;
+    --c-red-900: 254 226 226;
+    --c-green-50: 16 44 34;
+    --c-green-100: 20 56 42;
+    --c-green-200: 30 90 60;
+    --c-green-600: 74 222 128;
+    --c-green-700: 134 239 172;
+    --c-green-800: 187 247 208;
+    --c-green-900: 220 252 231;
+    --c-amber-50: 48 36 16;
+    --c-amber-100: 62 46 18;
+    --c-amber-200: 110 80 20;
+    --c-amber-600: 251 191 36;
+    --c-amber-700: 252 211 77;
+    --c-amber-800: 253 230 138;
+    --c-amber-900: 254 243 199;
+  }
+}

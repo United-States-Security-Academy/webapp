@@ -38,6 +38,8 @@ export const ICON_NAME = {
   eyeOff: 'eyeOff',
   expand: 'expand',
   collapse: 'collapse',
+  sun: 'sun',
+  moon: 'moon',
 } as const;
 
 export type IconName = (typeof ICON_NAME)[keyof typeof ICON_NAME];
@@ -80,6 +82,8 @@ const ICON_PATHS: Record<IconName, string> = {
   eyeOff: 'M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6z M12 15a3 3 0 100-6 3 3 0 000 6z M3 3l18 18',
   expand: 'M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5',
   collapse: 'M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5',
+  sun: 'M12 12m-4 0a4 4 0 108 0 4 4 0 10-8 0M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4',
+  moon: 'M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z',
 };
 
 export function Icon({ name, ...props }: { name: IconName } & SVGProps<SVGSVGElement>) {
