@@ -99,6 +99,34 @@
       "when": 1791644876998,
       "tag": "0013_timed_assessments",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1791987219298,
+      "tag": "0014_structured_courses",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1792034812006,
+      "tag": "0015_structured_course_storage",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1792066491537,
+      "tag": "0016_structured_upload_status",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1792069361697,
+      "tag": "0017_structured_quiz_answers",
+      "breakpoints": true
     }
   ]
 }

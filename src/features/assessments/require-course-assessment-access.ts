@@ -2,7 +2,7 @@ import { ApiError } from '@/api-response/api-error';
 import { API_ERROR_CODE } from '@/api-response/api-error-codes';
 import type { AuthenticatedUser } from '@/features/auth/auth-types';
 import { isUserEnrolledInCourse } from '@/features/enrollments/enrollment-queries';
-import { getCourseModuleProgress } from '@/features/progress/course-progress-queries';
+import { getLearnerCourseProgress } from '@/features/progress/learner-course-progress';
 import type { Course } from '@/features/courses/course-types';
 
 export type AssessmentAccessStatus = 'ok' | 'not_enrolled' | 'course_incomplete';
@@ -16,7 +16,7 @@ export async function getAssessmentAccessStatus(
   const isEnrolled = await isUserEnrolledInCourse(authenticatedUser.userId, courseRecord.id);
   if (!isEnrolled) return 'not_enrolled';
 
-  const progress = await getCourseModuleProgress(authenticatedUser.userId, courseRecord.id);
+  const progress = await getLearnerCourseProgress(authenticatedUser.userId, courseRecord);
   if (progress.completedAt === null) return 'course_incomplete';
 
   return 'ok';

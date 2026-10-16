@@ -3,7 +3,7 @@ import { Icon } from '@/components/ui/icon';
 import { COURSE_CATEGORY_META } from '@/features/courses/course-category';
 import type { EnrolledCourseSummary } from './dashboard-queries';
 
-export function EnrolledCourseCard({ course, progress, nextLessonSlug, hasPassedRequiredAssessment }: EnrolledCourseSummary) {
+export function EnrolledCourseCard({ course, progress, nextLessonSlug, nextLessonHref, hasPassedRequiredAssessment }: EnrolledCourseSummary) {
   const isCompleted = progress.completedAt !== null;
   const isCertified = isCompleted && hasPassedRequiredAssessment;
   const needsAssessment = isCompleted && !hasPassedRequiredAssessment;
@@ -11,9 +11,11 @@ export function EnrolledCourseCard({ course, progress, nextLessonSlug, hasPassed
     ? `/dashboard/certificates/${course.slug}`
     : needsAssessment
       ? `/dashboard/courses/${course.slug}/assessment`
-      : nextLessonSlug
-        ? `/dashboard/courses/${course.slug}/lessons/${nextLessonSlug}`
-        : `/dashboard/courses/${course.slug}`;
+      : nextLessonHref
+        ? nextLessonHref
+        : nextLessonSlug
+          ? `/dashboard/courses/${course.slug}/lessons/${nextLessonSlug}`
+          : `/dashboard/courses/${course.slug}`;
   const actionLabel = isCertified
     ? 'View certificate'
     : needsAssessment

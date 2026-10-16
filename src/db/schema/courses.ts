@@ -40,6 +40,12 @@ export const courseCategoryEnum = pgEnum('course_category', [
   'safety',
 ]);
 
+// How students take the course: 'pdf' is the original lesson-by-lesson PDF/video flow (modules +
+// lessons tables); 'structured' renders published structured modules (structured_modules) as
+// interactive lessons instead. Every existing course defaults to 'pdf'.
+export const courseDeliveryFormatEnum = pgEnum('course_delivery_format', ['pdf', 'structured']);
+export type CourseDeliveryFormat = (typeof courseDeliveryFormatEnum.enumValues)[number];
+
 export const courses = pgTable(
   'courses',
   {
@@ -54,6 +60,7 @@ export const courses = pgTable(
     priceAmountMinor: integer('price_amount_minor').notNull().default(0),
     currency: text('currency').notNull(),
     status: courseStatusEnum('status').notNull().default('draft'),
+    deliveryFormat: courseDeliveryFormatEnum('delivery_format').notNull().default('pdf'),
     publishedAt: timestamp('published_at', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },

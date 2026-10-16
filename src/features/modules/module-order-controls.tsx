@@ -3,23 +3,27 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Icon } from '@/components/ui/icon';
+import type { ActionResult } from '@/api-response/action-result';
 import { moveModule } from './module-actions';
 
 const ARROW_BUTTON_CLASS_NAME =
   'flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 text-slate-600 hover:border-navy-800 hover:text-navy-800 disabled:pointer-events-none disabled:opacity-30';
 
 // Up/down to nudge a module one place, or pick any position to jump straight there.
+// `moveAction` defaults to moving a PDF module; structured modules pass their own.
 export function ModuleOrderControls({
   moduleId,
   moduleTitle,
   position,
   moduleCount,
+  moveAction = moveModule,
 }: {
   moduleId: string;
   moduleTitle: string;
   // 1-based
   position: number;
   moduleCount: number;
+  moveAction?: (moduleId: string, targetPosition: number) => Promise<ActionResult>;
 }) {
   const router = useRouter();
   const [isMoving, setIsMoving] = useState(false);
@@ -29,7 +33,7 @@ export function ModuleOrderControls({
     if (targetPosition === position) return;
     setIsMoving(true);
     setErrorMessage(null);
-    const result = await moveModule(moduleId, targetPosition);
+    const result = await moveAction(moduleId, targetPosition);
     setIsMoving(false);
     if (!result.success) {
       setErrorMessage(result.error);

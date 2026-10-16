@@ -6,6 +6,7 @@ import { studentProfiles, type NewStudentProfile, type StudentProfile } from '@/
 import { ApiError } from '@/api-response/api-error';
 import type { ActionResult } from '@/api-response/action-result';
 import { requireAuthenticatedUserFromSession } from '@/features/auth/require-authenticated-user';
+import { pickFields } from '@/pick-fields';
 import {
   buildProfilePhotoStoragePath,
   createProfilePhotoUploadUrl,
@@ -14,14 +15,27 @@ import {
 
 type UpsertStudentProfileInput = Omit<NewStudentProfile, 'userId' | 'updatedAt' | 'photoUrl'>;
 
+const PROFILE_FIELDS = [
+  'legalName',
+  'governmentIdType',
+  'governmentIdValue',
+  'phoneNumber',
+  'country',
+  'state',
+  'city',
+  'residentialAddress',
+] as const satisfies readonly (keyof UpsertStudentProfileInput)[];
+
 export async function upsertStudentProfile(input: UpsertStudentProfileInput): Promise<ActionResult<StudentProfile>> {
   try {
     const authenticatedUser = await requireAuthenticatedUserFromSession();
+    // Only the form's fields: a userId or photoUrl sent by the caller must never reach the query.
+    const profileFields = pickFields(input, PROFILE_FIELDS);
 
     const [profile] = await db
       .insert(studentProfiles)
-      .values({ userId: authenticatedUser.userId, ...input, updatedAt: new Date() })
-      .onConflictDoUpdate({ target: studentProfiles.userId, set: { ...input, updatedAt: new Date() } })
+      .values({ ...profileFields, userId: authenticatedUser.userId, updatedAt: new Date() })
+      .onConflictDoUpdate({ target: studentProfiles.userId, set: { ...profileFields, updatedAt: new Date() } })
       .returning();
     if (!profile) return { success: false, error: 'Failed to save profile.' };
 

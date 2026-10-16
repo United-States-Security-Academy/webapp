@@ -9,10 +9,15 @@ import { requireAuthenticatedUserFromSession } from '@/features/auth/require-aut
 import { requireRole } from '@/features/auth/require-role';
 import { requireCourseOwnership } from './require-course-ownership';
 import { slugify } from '@/slugify';
+import { pickFields } from '@/pick-fields';
 import type { Course, NewCourse } from './course-types';
 
 type CreateCourseInput = Pick<NewCourse, 'slug' | 'title' | 'summary' | 'category' | 'priceAmountMinor' | 'currency'>;
 type UpdateCourseInput = Partial<Pick<NewCourse, 'slug' | 'title' | 'summary' | 'category' | 'priceAmountMinor' | 'currency'>>;
+
+// The fields the course forms send. Owner, status and lesson format have their own actions with
+// their own checks, so they can't be changed through these.
+const COURSE_FORM_FIELDS = ['slug', 'title', 'summary', 'category', 'priceAmountMinor', 'currency'] as const;
 
 // Each action below wraps its body in a try/catch that converts our own ApiError (an
 // intentional, safe-to-show validation error) into a returned message — Next.js redacts thrown
@@ -25,9 +30,10 @@ export async function createCourse(input: CreateCourseInput): Promise<ActionResu
     const authenticatedUser = await requireAuthenticatedUserFromSession();
     requireRole(authenticatedUser, ['instructor', 'admin']);
 
+    const courseFields = pickFields(input, COURSE_FORM_FIELDS);
     const [createdCourse] = await db
       .insert(courses)
-      .values({ ...input, slug: slugify(input.slug), ownerId: authenticatedUser.userId })
+      .values({ ...courseFields, slug: slugify(courseFields.slug ?? ''), ownerId: authenticatedUser.userId })
       .returning();
     if (!createdCourse) return { success: false, error: 'Failed to create course.' };
     return { success: true, data: createdCourse };
@@ -41,6 +47,7 @@ export async function updateCourse(courseId: string, updates: UpdateCourseInput)
   try {
     const authenticatedUser = await requireAuthenticatedUserFromSession();
     await requireCourseOwnership(authenticatedUser, courseId);
+    updates = pickFields(updates, COURSE_FORM_FIELDS);
 
     if (updates.slug !== undefined) {
       const slug = slugify(updates.slug);

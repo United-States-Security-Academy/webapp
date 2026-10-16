@@ -10,6 +10,7 @@ import { requireAuthenticatedUserFromSession } from '@/features/auth/require-aut
 import { requireCourseOwnership } from '@/features/courses/require-course-ownership';
 import { getModuleById } from '@/features/modules/module-queries';
 import { slugify } from '@/slugify';
+import { pickFields } from '@/pick-fields';
 import { getLessonById } from './lesson-queries';
 
 const LESSON_POSITION_GAP = 10;
@@ -35,6 +36,11 @@ async function getNextLessonPosition(moduleId: string): Promise<number> {
 type CreateLessonInput = { title: string; slug: string; isPreview: boolean; contentType: 'video' | 'pdf' };
 type UpdateLessonInput = Partial<Pick<CreateLessonInput, 'title' | 'isPreview'>>;
 
+// Only what the lesson forms send: a caller can't move a lesson to another course's module, or
+// point it at another lesson's stored files.
+const CREATE_LESSON_FIELDS = ['title', 'slug', 'isPreview', 'contentType'] as const;
+const UPDATE_LESSON_FIELDS = ['title', 'isPreview'] as const;
+
 export async function createLesson(moduleId: string, input: CreateLessonInput): Promise<ActionResult<Lesson>> {
   try {
     const authenticatedUser = await requireAuthenticatedUserFromSession();
@@ -44,7 +50,7 @@ export async function createLesson(moduleId: string, input: CreateLessonInput): 
     const position = await getNextLessonPosition(moduleId);
     const [createdLesson] = await db
       .insert(lessons)
-      .values({ ...input, slug: slugify(input.slug), moduleId, position })
+      .values({ ...pickFields(input, CREATE_LESSON_FIELDS), slug: slugify(input.slug), moduleId, position })
       .returning();
     if (!createdLesson) return { success: false, error: 'Failed to add lesson.' };
     return { success: true, data: createdLesson };
@@ -64,7 +70,9 @@ export async function updateLesson(lessonId: string, updates: UpdateLessonInput)
     const courseId = await getCourseIdForModule(lessonRecord.moduleId);
     await requireCourseOwnership(authenticatedUser, courseId);
 
-    const [updatedLesson] = await db.update(lessons).set(updates).where(eq(lessons.id, lessonId)).returning();
+    const lessonFields = pickFields(updates, UPDATE_LESSON_FIELDS);
+    if (Object.keys(lessonFields).length === 0) return { success: true, data: lessonRecord };
+    const [updatedLesson] = await db.update(lessons).set(lessonFields).where(eq(lessons.id, lessonId)).returning();
     if (!updatedLesson) return { success: false, error: 'Failed to update lesson.' };
     return { success: true, data: updatedLesson };
   } catch (error) {
