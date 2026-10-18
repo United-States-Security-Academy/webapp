@@ -2,7 +2,8 @@ import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { getAuthenticatedUserFromSession } from '@/features/auth/get-authenticated-user';
 import { getCourseBySlug } from '@/features/courses/course-queries';
-import { getAttemptById, getCourseIdByAssessmentId } from '@/features/assessments/assessment-queries';
+import { getAssessmentByCourseId, getAttemptById, getCourseIdByAssessmentId } from '@/features/assessments/assessment-queries';
+import { attemptsExhaustedMessage, getAttemptAllowance } from '@/features/assessments/attempt-limits';
 import { Icon } from '@/components/ui/icon';
 
 export default async function AssessmentResultPage({
@@ -26,6 +27,11 @@ export default async function AssessmentResultPage({
 
   const attemptCourseId = await getCourseIdByAssessmentId(attempt.assessmentId);
   if (attemptCourseId !== course.id) notFound();
+
+  // Whether the learner (the attempt's owner, also when an admin is viewing) can try again.
+  const assessment = attempt.passed ? null : await getAssessmentByCourseId(course.id);
+  const attemptAllowance = assessment ? await getAttemptAllowance(assessment, attempt.userId) : null;
+  const hasAttemptsLeft = attemptAllowance?.hasAttemptsLeft ?? true;
 
   return (
     <main className="mx-auto max-w-lg px-4 py-10">
@@ -80,14 +86,22 @@ export default async function AssessmentResultPage({
         ) : (
           <>
             <p className="mt-4 max-w-sm text-sm text-slate-600">
-              You didn&apos;t reach the passing score for {course.title} this time. Review the course material and try again.
+              You didn&apos;t reach the passing score for {course.title} this time.{' '}
+              {hasAttemptsLeft ? 'Review the course material and try again.' : attemptsExhaustedMessage(attemptAllowance!.maxAttempts!)}
             </p>
+            {attemptAllowance?.attemptsRemaining !== null && attemptAllowance?.attemptsRemaining !== undefined && hasAttemptsLeft && (
+              <p className="mt-2 text-xs font-semibold text-slate-500">
+                {attemptAllowance.attemptsRemaining} attempt{attemptAllowance.attemptsRemaining === 1 ? '' : 's'} left
+              </p>
+            )}
+            {hasAttemptsLeft && (
             <Link
               href={`/dashboard/courses/${course.slug}/assessment`}
               className="mt-6 inline-flex items-center justify-center rounded-md bg-navy-900 px-6 py-2.5 text-sm font-bold text-white hover:bg-navy-800"
             >
               Take the assessment again
             </Link>
+            )}
           </>
         )}
       </div>

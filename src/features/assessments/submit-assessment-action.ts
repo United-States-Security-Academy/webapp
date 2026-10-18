@@ -10,6 +10,7 @@ import type { Course } from '@/features/courses/course-types';
 import { requireCourseAssessmentAccess } from './require-course-assessment-access';
 import { getAssessmentByCourseId, getAssessmentWithQuestions } from './assessment-queries';
 import { gradeAssessmentAnswers } from './grade-assessment-answers';
+import { attemptsExhaustedMessage, getAttemptAllowance } from './attempt-limits';
 import {
   finalizeExpiredSession,
   getLatestAttempt,
@@ -56,8 +57,14 @@ export async function startTimedAssessment(courseId: string): Promise<ActionResu
 
     // An earlier attempt whose time ran out while the learner was away is submitted first.
     const existingSession = await getTimedSession(assessment.id, authenticatedUser.userId);
-    if (existingSession && hasTimeRunOut(existingSession)) {
+    const hasActiveSession = !!existingSession && !hasTimeRunOut(existingSession);
+    if (existingSession && !hasActiveSession) {
       await finalizeExpiredSession(assessment, existingSession, authenticatedUser.userId);
+    }
+    // A new attempt needs one left; resuming the one already running doesn't.
+    if (!hasActiveSession && assessment.maxAttempts !== null) {
+      const allowance = await getAttemptAllowance(assessment, authenticatedUser.userId);
+      if (!allowance.hasAttemptsLeft) return { success: false, error: attemptsExhaustedMessage(assessment.maxAttempts) };
     }
     await startTimedSession(assessment.id, authenticatedUser.userId, assessment.timeLimitMinutes);
     return { success: true, data: undefined };

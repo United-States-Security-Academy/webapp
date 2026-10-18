@@ -1,6 +1,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { Icon } from '@/components/ui/icon';
+import { SITE_CONTACT } from '@/features/site/site-contact';
 
 const SOCIAL_LINKS = [
   { label: 'Facebook', initials: 'f', href: '#' },
@@ -36,10 +37,10 @@ export function SiteFooter() {
           <h3 className="text-sm font-bold tracking-wide text-gold-400">CONTACT US</h3>
           <ul className="mt-3 flex flex-col gap-2 text-sm text-slate-300">
             <li className="flex items-center gap-2">
-              <Icon name="phone" className="h-4 w-4" /> (832) 260-6092
+              <Icon name="phone" className="h-4 w-4" /> {SITE_CONTACT.mainPhone}
             </li>
             <li className="flex items-center gap-2">
-              <Icon name="mail" className="h-4 w-4" /> info@ussa-academy.com
+              <Icon name="mail" className="h-4 w-4" /> {SITE_CONTACT.email}
             </li>
           </ul>
         </div>

@@ -127,6 +127,13 @@
       "when": 1792069361697,
       "tag": "0017_structured_quiz_answers",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1792282586853,
+      "tag": "0018_exam_attempt_limits",
+      "breakpoints": true
     }
   ]
 }

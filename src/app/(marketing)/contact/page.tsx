@@ -1,6 +1,7 @@
 import { PageBanner } from '@/components/layout/page-banner';
 import { Icon, type IconName } from '@/components/ui/icon';
 import type { Metadata } from 'next';
+import { SITE_CONTACT } from '@/features/site/site-contact';
 
 export const metadata: Metadata = {
   title: 'Contact Us',
@@ -8,10 +9,10 @@ export const metadata: Metadata = {
 };
 
 const CONTACT_DETAILS: { icon: IconName; label: string; value: string }[] = [
-  { icon: 'phone', label: 'Phone', value: '(832) 260-6092' },
-  { icon: 'mail', label: 'Email', value: 'info@ussa-academy.com' },
+  { icon: 'phone', label: 'Phone', value: SITE_CONTACT.mainPhone },
+  { icon: 'mail', label: 'Email', value: SITE_CONTACT.email },
   { icon: 'mapPin', label: 'Location', value: 'Houston, Texas — training delivered nationwide' },
-  { icon: 'clock', label: 'Office Hours', value: 'Monday - Friday, 8:00 AM - 5:00 PM CT' },
+  { icon: 'clock', label: 'Office Hours', value: SITE_CONTACT.officeHours },
 ];
 
 export default function ContactPage() {

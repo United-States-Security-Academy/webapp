@@ -13,6 +13,7 @@ export function AssessmentSettingsForm({ courseId, assessment }: { courseId: str
   const [title, setTitle] = useState(assessment.title);
   const [passingScoreInput, setPassingScoreInput] = useState(String(assessment.passingScorePercentage));
   const [timeLimitInput, setTimeLimitInput] = useState(assessment.timeLimitMinutes ? String(assessment.timeLimitMinutes) : '');
+  const [maxAttemptsInput, setMaxAttemptsInput] = useState(assessment.maxAttempts ? String(assessment.maxAttempts) : '');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -22,7 +23,8 @@ export function AssessmentSettingsForm({ courseId, assessment }: { courseId: str
     setErrorMessage(null);
     const passingScorePercentage = Math.min(100, Math.max(0, Number.parseInt(passingScoreInput, 10) || 0));
     const timeLimitMinutes = timeLimitInput.trim() ? Number(timeLimitInput) : null;
-    const result = await createOrUpdateAssessment(courseId, { title, passingScorePercentage, timeLimitMinutes });
+    const maxAttempts = maxAttemptsInput.trim() ? Number(maxAttemptsInput) : null;
+    const result = await createOrUpdateAssessment(courseId, { title, passingScorePercentage, timeLimitMinutes, maxAttempts });
     if (!result.success) {
       setErrorMessage(result.error);
       setIsSubmitting(false);
@@ -40,7 +42,8 @@ export function AssessmentSettingsForm({ courseId, assessment }: { courseId: str
           <h1 className="text-2xl font-semibold text-slate-900">{assessment.title}</h1>
           <p className="text-sm text-slate-500">
             Passing score: {assessment.passingScorePercentage}% &middot;{' '}
-            {assessment.timeLimitMinutes ? `Time limit: ${assessment.timeLimitMinutes} minutes` : 'No time limit'}
+            {assessment.timeLimitMinutes ? `Time limit: ${assessment.timeLimitMinutes} minutes` : 'No time limit'} &middot;{' '}
+            {assessment.maxAttempts ? `Maximum ${assessment.maxAttempts} attempt${assessment.maxAttempts === 1 ? '' : 's'}` : 'Unlimited attempts'}
           </p>
         </div>
         <Button variant="outline" onClick={() => setIsEditing(true)}>
@@ -81,6 +84,22 @@ export function AssessmentSettingsForm({ courseId, assessment }: { courseId: str
         <p className="mt-1 text-xs text-slate-400">
           Leave blank for no limit. When set, students see a countdown and their answers are submitted automatically when time
           runs out.
+        </p>
+      </div>
+      <div>
+        <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-slate-600">Maximum attempts</label>
+        <Input
+          type="number"
+          min="1"
+          max="20"
+          step="1"
+          placeholder="Unlimited"
+          value={maxAttemptsInput}
+          onChange={(changeEvent) => setMaxAttemptsInput(changeEvent.target.value)}
+        />
+        <p className="mt-1 text-xs text-slate-400">
+          Leave blank for unlimited. When set, students who use every attempt without passing must contact you; an admin can
+          give them a fresh set from their user page. The course page shows this limit automatically.
         </p>
       </div>
       <div className="flex gap-2">

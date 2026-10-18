@@ -10,6 +10,8 @@ import { getSupabaseAdminClient } from '@/supabase/admin-client';
 import type { ActionResult } from '@/api-response/action-result';
 import { getUserById } from './user-queries';
 import { getGovernmentIdValue } from './user-detail-queries';
+import { getAssessmentByCourseId } from '@/features/assessments/assessment-queries';
+import { resetAttempts } from '@/features/assessments/attempt-limits';
 
 export async function updateUserRole(userId: string, newRole: UserRole): Promise<ActionResult> {
   const authenticatedUser = await requireAuthenticatedUserFromSession();
@@ -65,4 +67,19 @@ export async function revealGovernmentId(userId: string): Promise<ActionResult<s
   const authenticatedUser = await requireAuthenticatedUserFromSession();
   requireRole(authenticatedUser, ['admin']);
   return { success: true, data: await getGovernmentIdValue(userId) };
+}
+
+// Gives a learner a fresh set of exam attempts for one course (after they used them all). Their
+// earlier attempts stay on record.
+export async function resetExamAttempts(userId: string, courseId: string): Promise<ActionResult> {
+  const authenticatedUser = await requireAuthenticatedUserFromSession();
+  requireRole(authenticatedUser, ['admin']);
+
+  const [targetUser, assessment] = await Promise.all([getUserById(userId), getAssessmentByCourseId(courseId)]);
+  if (!targetUser) return { success: false, error: 'User not found.' };
+  if (!assessment) return { success: false, error: 'This course has no assessment.' };
+
+  await resetAttempts(assessment.id, userId, authenticatedUser.userId);
+  revalidatePath(`/admin/users/${userId}`);
+  return { success: true, data: undefined };
 }
