@@ -1,7 +1,8 @@
-import { and, asc, desc, eq, inArray } from 'drizzle-orm';
+import { and, asc, count, desc, eq, inArray } from 'drizzle-orm';
 import { db } from '@/db/client';
 import { assessmentChoices, assessmentAttempts, assessmentQuestions, courseAssessments } from '@/db/schema';
 import type { AssessmentAttempt, AssessmentForLearner, AssessmentWithQuestions } from './assessment-types';
+import type { CourseExamSummary } from '@/features/courses/course-page/course-page-facts';
 
 export async function getAssessmentByCourseId(courseId: string) {
   const [assessmentRecord] = await db.select().from(courseAssessments).where(eq(courseAssessments.courseId, courseId));
@@ -47,6 +48,23 @@ export async function getRequiredAssessmentStatuses(userId: string, courseIds: s
     statuses.set(assessment.courseId, { assessment, hasPassed: questionsFor === null || passedFor !== null });
   }
   return statuses;
+}
+
+// The exam rules shown on the course page. Null when there's no exam or it has no questions yet
+// (an exam still being written isn't required for certificates, so it isn't advertised either).
+export async function getCourseExamSummary(courseId: string): Promise<CourseExamSummary | null> {
+  const [row] = await db
+    .select({
+      passingScorePercentage: courseAssessments.passingScorePercentage,
+      timeLimitMinutes: courseAssessments.timeLimitMinutes,
+      maxAttempts: courseAssessments.maxAttempts,
+      questionCount: count(assessmentQuestions.id),
+    })
+    .from(courseAssessments)
+    .leftJoin(assessmentQuestions, eq(assessmentQuestions.assessmentId, courseAssessments.id))
+    .where(eq(courseAssessments.courseId, courseId))
+    .groupBy(courseAssessments.id);
+  return row && row.questionCount > 0 ? row : null;
 }
 
 export async function getAssessmentWithQuestions(courseId: string): Promise<AssessmentWithQuestions | null> {

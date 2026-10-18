@@ -7,6 +7,7 @@ import { Icon } from '@/components/ui/icon';
 import { SignOutButton } from '@/features/auth/sign-out-button';
 import { getDashboardHref } from '@/features/auth/get-dashboard-href';
 import type { AuthenticatedUser } from '@/features/auth/auth-types';
+import { SITE_CONTACT } from '@/features/site/site-contact';
 
 interface NavLink {
   label: string;
@@ -55,11 +56,11 @@ export function SiteHeader({ authenticatedUser }: { authenticatedUser: Authentic
         <div className="flex items-center gap-4">
           <span className="flex items-center gap-1">
             <Icon name="phone" className="h-3.5 w-3.5" />
-            (832) 260-6092
+            {SITE_CONTACT.mainPhone}
           </span>
           <span className="flex items-center gap-1">
             <Icon name="mail" className="h-3.5 w-3.5" />
-            info@ussa-academy.com
+            {SITE_CONTACT.email}
           </span>
         </div>
       </div>
