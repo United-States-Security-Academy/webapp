@@ -1,7 +1,7 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { MotionConfig, motion } from 'framer-motion';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { MotionConfig, motion, useReducedMotion } from 'framer-motion';
 import type { StructuredBlock, StructuredLessonContent } from '@/db/schema/structured-courses';
 import { Icon } from '@/components/ui/icon';
 import { HeadingBlock } from './heading-block';
@@ -13,6 +13,8 @@ import { ImageBlock } from './image-block';
 import { CalloutBlock } from './callout-block';
 import { QuizBlock } from './quiz-block';
 import { getFirstLockedBlockIndex } from './lesson-gate';
+import { LessonAudioPlayer } from './lesson-audio-player';
+import { lessonToSpeechSegments } from './lesson-speech';
 
 export interface LessonPlayerProps {
   lesson: StructuredLessonContent;
@@ -88,18 +90,52 @@ export function LessonPlayer({ lesson, imageUrls, showLockedContent = false, onA
     () => (showLockedContent ? null : getFirstLockedBlockIndex(lesson.blocks, passedQuizIndexes)),
     [lesson.blocks, passedQuizIndexes, showLockedContent],
   );
-  const openBlocks = lockedFromIndex === null ? lesson.blocks : lesson.blocks.slice(0, lockedFromIndex);
+  const openBlocks = useMemo(
+    () => (lockedFromIndex === null ? lesson.blocks : lesson.blocks.slice(0, lockedFromIndex)),
+    [lesson.blocks, lockedFromIndex],
+  );
   const lockedBlocks = lockedFromIndex === null ? [] : lesson.blocks.slice(lockedFromIndex);
+
+  // Read-aloud: only the open blocks, so nothing locked behind a quiz is read out.
+  const speechSegments = useMemo(() => lessonToSpeechSegments(lesson, openBlocks), [lesson, openBlocks]);
+  const [activeBlockIndex, setActiveBlockIndex] = useState<number | null>(null);
+  const blockElementsRef = useRef(new Map<number, HTMLDivElement>());
+  const shouldReduceMotion = useReducedMotion();
+
+  // Brings the block being read into view when it isn't already, so the learner can read along.
+  useEffect(() => {
+    const element = activeBlockIndex === null ? undefined : blockElementsRef.current.get(activeBlockIndex);
+    if (!element) return;
+    const { top, bottom } = element.getBoundingClientRect();
+    const isOutOfView = top < 100 || (bottom > window.innerHeight - 100 && top > window.innerHeight / 3);
+    if (isOutOfView) element.scrollIntoView({ block: top < 100 ? 'start' : 'center', behavior: shouldReduceMotion ? 'auto' : 'smooth' });
+  }, [activeBlockIndex, shouldReduceMotion]);
 
   return (
     // "user": follows the device's reduce-motion setting for every animation inside the player.
     <MotionConfig reducedMotion="user">
       <article className="flex flex-col gap-6">
         <h2 className="text-2xl font-bold leading-tight text-slate-900 sm:text-3xl">{lesson.title}</h2>
-        {lesson.blocks.length === 0 && <p className="text-slate-500">This lesson has no content yet.</p>}
+        {lesson.blocks.length === 0 ? (
+          <p className="text-slate-500">This lesson has no content yet.</p>
+        ) : (
+          <LessonAudioPlayer segments={speechSegments} hasLockedContent={lockedBlocks.length > 0} onActiveBlockChange={setActiveBlockIndex} />
+        )}
 
         {openBlocks.map((block, index) => (
-          <motion.div key={index} initial={index >= initiallyOpenCount ? { opacity: 0 } : false} animate={{ opacity: 1 }} transition={{ duration: 0.4 }}>
+          <motion.div
+            key={index}
+            ref={(element: HTMLDivElement | null) => {
+              if (element) blockElementsRef.current.set(index, element);
+              else blockElementsRef.current.delete(index);
+            }}
+            initial={index >= initiallyOpenCount ? { opacity: 0 } : false}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.4 }}
+            // The block being read aloud gets a soft gold highlight; the ring adds room around it
+            // without shifting the layout.
+            className={`scroll-mt-28 rounded-sm transition-colors duration-300 ${index === activeBlockIndex ? 'bg-gold-500/15 ring-8 ring-gold-500/15' : 'ring-0'}`}
+          >
             <LessonBlock block={block} index={index} imageUrls={imageUrls} onQuizPassed={handleQuizPassed} onQuizAnswer={onQuizAnswer} />
           </motion.div>
         ))}

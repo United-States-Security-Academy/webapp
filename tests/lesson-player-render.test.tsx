@@ -33,6 +33,7 @@ describe('LessonPlayer', () => {
     expect(html).toContain('src="https://example.test/badge.png"');
     expect(html).toContain('What do you check first?');
     expect(html).not.toContain('keep reading');
+    expect(html).toContain('Listen to this lesson');
   });
 
   it('keeps the content below an unanswered quiz locked, hidden from screen readers', async () => {
