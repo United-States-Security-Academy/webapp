@@ -56,9 +56,10 @@ export async function completeStructuredLesson(input: {
       .onConflictDoUpdate({
         target: [structuredLessonProgress.userId, structuredLessonProgress.moduleId, structuredLessonProgress.lessonKey],
         // The first completion time is kept (it's what certificates date from); the answers
-        // are those of the latest run through the lesson.
+        // are those of the latest run through the lesson. `excluded` is the row being inserted;
+        // a Date can't be passed into raw sql here, as the driver can't encode it untyped.
         set: {
-          completedAt: sql`coalesce(${structuredLessonProgress.completedAt}, ${now})`,
+          completedAt: sql`coalesce(${structuredLessonProgress.completedAt}, excluded.completed_at)`,
           revisionId: publishedLesson.revisionId,
           quizAnswers: quizCheck.answers,
           updatedAt: now,

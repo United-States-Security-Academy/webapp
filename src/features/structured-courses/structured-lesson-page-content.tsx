@@ -74,6 +74,9 @@ export async function StructuredLessonPageContent({ courseSlug, moduleId, lesson
           lesson={publishedLesson.lesson}
           imageUrls={imageUrls}
           isCompleted={position.lesson.completedAt !== null}
+          previous={position.previous && { href: buildStructuredLessonHref(basePath, courseRecord.slug, position.previous), title: position.previous.title }}
+          next={position.next && { href: buildStructuredLessonHref(basePath, courseRecord.slug, position.next), title: position.next.title }}
+          courseHref={courseHref}
         />
 
         {progress.completedAt && (
@@ -87,37 +90,6 @@ export async function StructuredLessonPageContent({ courseSlug, moduleId, lesson
             </Link>
           </div>
         )}
-
-        <nav aria-label="Lesson navigation" className="mt-8 grid grid-cols-2 gap-3 border-t border-slate-200 pt-6">
-          {position.previous ? (
-            <Link
-              href={buildStructuredLessonHref(basePath, courseRecord.slug, position.previous)}
-              className="flex min-h-[3.5rem] flex-col justify-center rounded-lg border border-slate-200 bg-white px-3 py-2 hover:border-navy-800"
-            >
-              <span className="text-xs text-slate-500">&larr; Previous</span>
-              <span className="line-clamp-2 text-sm font-medium text-slate-900">{position.previous.title}</span>
-            </Link>
-          ) : (
-            <span />
-          )}
-          {position.next ? (
-            <Link
-              href={buildStructuredLessonHref(basePath, courseRecord.slug, position.next)}
-              className="flex min-h-[3.5rem] flex-col items-end justify-center rounded-lg border border-navy-800 bg-navy-900 px-3 py-2 text-right text-white hover:bg-navy-800"
-            >
-              <span className="text-xs text-slate-300">Next &rarr;</span>
-              <span className="line-clamp-2 text-sm font-medium">{position.next.title}</span>
-            </Link>
-          ) : (
-            <Link
-              href={courseHref}
-              className="flex min-h-[3.5rem] flex-col items-end justify-center rounded-lg border border-slate-200 bg-white px-3 py-2 text-right hover:border-navy-800"
-            >
-              <span className="text-xs text-slate-500">Finished</span>
-              <span className="text-sm font-medium text-slate-900">Back to the course</span>
-            </Link>
-          )}
-        </nav>
       </div>
     </div>
   );
