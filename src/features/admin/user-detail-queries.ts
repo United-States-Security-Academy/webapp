@@ -1,6 +1,7 @@
 import { desc, eq } from 'drizzle-orm';
 import { db } from '@/db/client';
 import {
+  assessmentAttemptResets,
   assessmentAttempts,
   courseAssessments,
   courses,
@@ -27,11 +28,14 @@ export interface AdminUserCourse {
   status: EnrolledCourseStatus;
   examAttemptCount: number;
   bestExamScore: number | null;
+  // The exam's attempt limit (null = unlimited) and how many attempts count toward it.
+  examMaxAttempts: number | null;
+  examAttemptsTowardLimit: number;
 }
 
 // Everything an admin may need about one user, loaded in two parallel waves of queries.
 export async function getUserDetail(userId: string) {
-  const [userRows, profileRows, enrollmentRows, completedLessons, attemptRows, paymentRows, redemptionRows, ownedCourses] =
+  const [userRows, profileRows, enrollmentRows, completedLessons, attemptRows, paymentRows, redemptionRows, ownedCourses, attemptResetRows] =
     await Promise.all([
       db.select().from(users).where(eq(users.id, userId)),
       db.select().from(studentProfiles).where(eq(studentProfiles.userId, userId)),
@@ -63,6 +67,7 @@ export async function getUserDetail(userId: string) {
         .where(eq(discountCodeRedemptions.userId, userId))
         .orderBy(desc(discountCodeRedemptions.createdAt)),
       db.select().from(courses).where(eq(courses.ownerId, userId)).orderBy(desc(courses.createdAt)),
+      db.select().from(assessmentAttemptResets).where(eq(assessmentAttemptResets.userId, userId)),
     ]);
 
   const user = userRows[0];
@@ -85,6 +90,8 @@ export async function getUserDetail(userId: string) {
         ? computeStructuredCourseProgress(structuredOutlines.get(course.id) ?? [])
         : computeCourseProgress(lessonIds, completedAtByLessonId);
     const courseAttempts = attemptRows.filter((row) => row.courseId === course.id);
+    const courseAssessment = assessmentStatuses.get(course.id)?.assessment ?? null;
+    const attemptReset = courseAssessment ? attemptResetRows.find((row) => row.assessmentId === courseAssessment.id) : undefined;
     const hasPassedExam = assessmentStatuses.get(course.id)?.hasPassed ?? true;
     const status: EnrolledCourseStatus =
       progress.completedAt !== null
@@ -101,6 +108,10 @@ export async function getUserDetail(userId: string) {
       status,
       examAttemptCount: courseAttempts.length,
       bestExamScore: courseAttempts.length > 0 ? Math.max(...courseAttempts.map((row) => row.attempt.scorePercentage)) : null,
+      examMaxAttempts: courseAssessment?.maxAttempts ?? null,
+      examAttemptsTowardLimit: attemptReset
+        ? courseAttempts.filter((row) => row.attempt.submittedAt > attemptReset.resetAt).length
+        : courseAttempts.length,
     };
   });
 

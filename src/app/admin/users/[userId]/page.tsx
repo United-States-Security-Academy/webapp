@@ -8,6 +8,7 @@ import { RevealableGovernmentId } from '@/features/admin/revealable-government-i
 import { getMissingProfileFields, type RequiredProfileField } from '@/features/profile/profile-queries';
 import { GOVERNMENT_ID_LABEL, maskGovernmentId } from '@/features/profile/government-id';
 import { Icon, type IconName } from '@/components/ui/icon';
+import { ResetExamAttemptsButton } from '@/features/admin/reset-exam-attempts-button';
 
 const CARD_CLASS_NAME = 'rounded-xl border border-slate-200 bg-white shadow-sm';
 
@@ -167,7 +168,7 @@ export default async function AdminUserDetailPage({ params }: { params: Promise<
                     </tr>
                   </thead>
                   <tbody>
-                    {enrolledCourses.map(({ course, enrolledAt, progress, status, examAttemptCount, bestExamScore }) => {
+                    {enrolledCourses.map(({ course, enrolledAt, progress, status, examAttemptCount, bestExamScore, examMaxAttempts, examAttemptsTowardLimit }) => {
                       const percentage = progress.totalLessons === 0 ? 0 : Math.round((progress.completedLessons / progress.totalLessons) * 100);
                       return (
                         <tr key={course.id} className="border-b border-slate-50 last:border-0">
@@ -189,6 +190,21 @@ export default async function AdminUserDetailPage({ params }: { params: Promise<
                           </td>
                           <td className="whitespace-nowrap px-4 py-3 text-slate-600">
                             {examAttemptCount === 0 ? '—' : `Best ${bestExamScore}% · ${examAttemptCount} attempt${examAttemptCount === 1 ? '' : 's'}`}
+                            {examMaxAttempts !== null && status !== 'certified' && (
+                              <div className="mt-0.5 flex items-center gap-2 text-xs">
+                                <span className={examAttemptsTowardLimit >= examMaxAttempts ? 'font-semibold text-red-600' : 'text-slate-400'}>
+                                  {Math.min(examAttemptsTowardLimit, examMaxAttempts)} of {examMaxAttempts} used
+                                </span>
+                                {examAttemptsTowardLimit >= examMaxAttempts && (
+                                  <ResetExamAttemptsButton
+                                    userId={user.id}
+                                    courseId={course.id}
+                                    displayName={user.displayName}
+                                    maxAttempts={examMaxAttempts}
+                                  />
+                                )}
+                              </div>
+                            )}
                           </td>
                           <td className="px-5 py-3">
                             <span className={`whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-semibold ${COURSE_STATUS[status].className}`}>

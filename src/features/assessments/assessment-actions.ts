@@ -14,18 +14,19 @@ import type { AssessmentChoice, AssessmentQuestion, CourseAssessment } from './a
 
 const QUESTION_POSITION_GAP = 10;
 const MAX_TIME_LIMIT_MINUTES = 600;
+const MAX_ATTEMPTS_LIMIT = 20;
 const CHOICE_POSITION_GAP = 10;
 
 export async function createOrUpdateAssessment(
   courseId: string,
-  // timeLimitMinutes: null removes the limit; leaving it out keeps the current setting.
-  input: { title: string; passingScorePercentage: number; timeLimitMinutes?: number | null },
+  // timeLimitMinutes / maxAttempts: null removes the limit; leaving it out keeps the current setting.
+  input: { title: string; passingScorePercentage: number; timeLimitMinutes?: number | null; maxAttempts?: number | null },
 ): Promise<ActionResult<CourseAssessment>> {
   const authenticatedUser = await requireAuthenticatedUserFromSession();
   await requireCourseOwnership(authenticatedUser, courseId);
   // Only the settings form's fields: a courseId sent by the caller could otherwise move the exam
   // to a course they don't own.
-  input = pickFields(input, ['title', 'passingScorePercentage', 'timeLimitMinutes']);
+  input = pickFields(input, ['title', 'passingScorePercentage', 'timeLimitMinutes', 'maxAttempts']);
 
   if (
     input.timeLimitMinutes !== undefined &&
@@ -33,6 +34,13 @@ export async function createOrUpdateAssessment(
     (!Number.isInteger(input.timeLimitMinutes) || input.timeLimitMinutes < 1 || input.timeLimitMinutes > MAX_TIME_LIMIT_MINUTES)
   ) {
     return { success: false, error: `Time limit must be a whole number of minutes from 1 to ${MAX_TIME_LIMIT_MINUTES}, or left blank.` };
+  }
+  if (
+    input.maxAttempts !== undefined &&
+    input.maxAttempts !== null &&
+    (!Number.isInteger(input.maxAttempts) || input.maxAttempts < 1 || input.maxAttempts > MAX_ATTEMPTS_LIMIT)
+  ) {
+    return { success: false, error: `Maximum attempts must be a whole number from 1 to ${MAX_ATTEMPTS_LIMIT}, or left blank.` };
   }
 
   const courseRecord = await getCourseById(courseId);

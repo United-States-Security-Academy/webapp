@@ -54,6 +54,9 @@ export default async function InstructorCourseDetailPage({
       <div className="mt-4 flex flex-wrap items-center gap-2">
         <EditCourseForm course={course} />
         <PublishToggleButton courseId={course.id} isPublished={course.status === 'published'} />
+        <Link href={`/instructor/courses/${course.slug}/course-page`}>
+          <Button variant="outline">Edit course page</Button>
+        </Link>
         <Link href={`/instructor/courses/${course.slug}/assessment`}>
           <Button variant="outline">Manage assessment</Button>
         </Link>

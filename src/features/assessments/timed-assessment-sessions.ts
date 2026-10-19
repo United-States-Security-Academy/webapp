@@ -2,6 +2,7 @@ import { and, desc, eq } from 'drizzle-orm';
 import { db } from '@/db/client';
 import { assessmentAttemptAnswers, assessmentAttempts, assessmentTimedSessions, type AssessmentTimedSession } from '@/db/schema';
 import { calculateAssessmentScore } from './calculate-assessment-score';
+import { requireAttemptLeftInTransaction } from './attempt-limits';
 import { gradeAssessmentAnswers, type GradingResult } from './grade-assessment-answers';
 import type { AssessmentAttempt, AssessmentWithQuestions } from './assessment-types';
 
@@ -53,7 +54,9 @@ export async function getLatestAttempt(assessmentId: string, userId: string): Pr
 // Saves a graded attempt. For a timed attempt, its session is deleted in the same transaction and
 // the attempt is only recorded if this call is the one that deleted it — so an auto-submit from
 // the browser and a page reload that finalizes the same expired attempt can't both record it.
-// Returns null when another request already recorded it.
+// Returns null when another request already recorded it. An untimed attempt is refused (ApiError)
+// once the learner has no attempts left; a timed one was checked when it started, so it's always
+// recorded — time that ran out must still produce a result.
 export async function recordGradedAttempt(
   assessment: AssessmentWithQuestions,
   userId: string,
@@ -73,6 +76,8 @@ export async function recordGradedAttempt(
         .where(eq(assessmentTimedSessions.id, timedSessionId))
         .returning({ id: assessmentTimedSessions.id });
       if (!closedSession) return null;
+    } else {
+      await requireAttemptLeftInTransaction(transaction, assessment, userId);
     }
 
     const [attempt] = await transaction

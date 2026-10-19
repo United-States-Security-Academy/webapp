@@ -8,6 +8,8 @@ import { AssessmentAttemptForm } from '@/features/assessments/assessment-attempt
 import { StartTimedAssessment } from '@/features/assessments/start-timed-assessment';
 import { finalizeExpiredSession, getTimedSession, hasTimeRunOut } from '@/features/assessments/timed-assessment-sessions';
 import { Card } from '@/components/ui/card';
+import { attemptsExhaustedMessage, getAttemptAllowance } from '@/features/assessments/attempt-limits';
+import { SITE_CONTACT, phoneHref } from '@/features/site/site-contact';
 
 export default async function DashboardCourseAssessmentPage({ params }: { params: Promise<{ courseSlug: string }> }) {
   const { courseSlug } = await params;
@@ -31,7 +33,11 @@ export default async function DashboardCourseAssessmentPage({ params }: { params
   }
   const activeTimedSession = timedSession && !hasTimeRunOut(timedSession) ? timedSession : null;
 
-  const pastAttempts = assessment ? await listAttemptsForUser(assessment.id, authenticatedUser.userId) : [];
+  const [pastAttempts, attemptAllowance] = assessment
+    ? await Promise.all([listAttemptsForUser(assessment.id, authenticatedUser.userId), getAttemptAllowance(assessment, authenticatedUser.userId)])
+    : [[], null];
+  // An attempt already running can always be finished; only starting a new one needs an attempt left.
+  const canStartNewAttempt = !!activeTimedSession || (attemptAllowance?.hasAttemptsLeft ?? true);
 
   return (
     <main className="mx-auto max-w-2xl px-4 py-10">
@@ -94,13 +100,34 @@ export default async function DashboardCourseAssessmentPage({ params }: { params
 
           <section className="mt-6">
             <h2 className="text-sm font-bold uppercase tracking-wide text-slate-500">
-              {pastAttempts.length > 0 ? 'Retake the assessment' : 'Take the assessment'}
+              {!canStartNewAttempt ? 'No attempts left' : pastAttempts.length > 0 ? 'Retake the assessment' : 'Take the assessment'}
             </h2>
             <p className="mb-3 text-xs text-slate-500">
               Passing score: {assessment.passingScorePercentage}%
               {assessment.timeLimitMinutes && <> &middot; Time limit: {assessment.timeLimitMinutes} minutes</>}
+              {attemptAllowance?.maxAttempts && (
+                <>
+                  {' '}
+                  &middot; Attempts used: {Math.min(attemptAllowance.attemptsUsed, attemptAllowance.maxAttempts)} of {attemptAllowance.maxAttempts}
+                </>
+              )}
             </p>
-            {assessment.timeLimitMinutes && !activeTimedSession ? (
+            {!canStartNewAttempt && attemptAllowance?.maxAttempts ? (
+              <Card>
+                <p className="text-sm font-semibold text-slate-900">{attemptsExhaustedMessage(attemptAllowance.maxAttempts)}</p>
+                <p className="mt-2 text-sm text-slate-600">
+                  Call{' '}
+                  <a href={phoneHref(SITE_CONTACT.mainPhone)} className="font-semibold text-navy-800 hover:underline">
+                    {SITE_CONTACT.mainPhone}
+                  </a>{' '}
+                  or email{' '}
+                  <a href={`mailto:${SITE_CONTACT.email}`} className="font-semibold text-navy-800 hover:underline">
+                    {SITE_CONTACT.email}
+                  </a>
+                  .
+                </p>
+              </Card>
+            ) : assessment.timeLimitMinutes && !activeTimedSession ? (
               <StartTimedAssessment
                 courseId={course.id}
                 timeLimitMinutes={assessment.timeLimitMinutes}

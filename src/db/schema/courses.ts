@@ -21,9 +21,14 @@ export interface CourseDetailContentData {
   outcomes?: string[];
   whoShouldTakeThis?: string[];
   licensingNotice?: string;
+  // Other courses on this site, linked by slug (shown as cards with their live title and price).
+  relatedCourseSlugs?: string[];
+  // Training that isn't a course on this site (yet), listed as plain text.
   relatedCourses?: { title: string; description: string }[];
   tuitionIncludes?: string[];
   paymentNotes?: string[];
+  faqs?: { question: string; answer: string }[];
+  // No longer shown or edited: course pages use the site-wide details in src/features/site/site-contact.ts.
   contact?: { address?: string; phone?: string; altPhone?: string; email?: string };
   afterEnrollmentNotes?: string[];
 }

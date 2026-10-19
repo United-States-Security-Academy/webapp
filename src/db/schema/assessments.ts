@@ -13,6 +13,9 @@ export const courseAssessments = pgTable('course_assessments', {
   // Null means untimed. When set, a learner's attempt is auto-submitted once this many minutes
   // have passed since they pressed Start (tracked server-side in assessment_timed_sessions).
   timeLimitMinutes: integer('time_limit_minutes'),
+  // Null means unlimited. When set, a learner may submit at most this many attempts (counted since
+  // an admin last reset their attempts, see assessmentAttemptResets); enforced on the server.
+  maxAttempts: integer('max_attempts'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
@@ -121,3 +124,26 @@ export const assessmentTimedSessions = pgTable(
 );
 
 export type AssessmentTimedSession = typeof assessmentTimedSessions.$inferSelect;
+
+// When an admin last reset a learner's exam attempts. Attempts submitted before this time stay on
+// record (results, history) but no longer count toward the assessment's maxAttempts.
+export const assessmentAttemptResets = pgTable(
+  'assessment_attempt_resets',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    assessmentId: uuid('assessment_id')
+      .notNull()
+      .references(() => courseAssessments.id, { onDelete: 'cascade' }),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    resetAt: timestamp('reset_at', { withTimezone: true }).notNull().defaultNow(),
+    resetBy: uuid('reset_by').references(() => users.id, { onDelete: 'set null' }),
+  },
+  (table) => ({
+    assessmentIdUserIdUnique: uniqueIndex('assessment_attempt_resets_assessment_id_user_id_unique').on(
+      table.assessmentId,
+      table.userId,
+    ),
+  }),
+);
