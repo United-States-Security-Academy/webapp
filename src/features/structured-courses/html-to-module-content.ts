@@ -105,7 +105,9 @@ function readListItems(list: Element, warnings: string[], location: string): Str
     if (runs.length > 0) items.push(runs);
     const nestedLists = childElements(item, ['ol', 'ul']);
     if (nestedLists.length > 0) {
-      warnings.push(`${location}: a list inside a list was flattened into one level.`);
+      // Once per lesson: a lesson with many sub-lists would otherwise repeat the same line.
+      const warning = `${location}: a list inside a list was flattened into one level.`;
+      if (!warnings.includes(warning)) warnings.push(warning);
       for (const nestedList of nestedLists) items.push(...readListItems(nestedList, warnings, location));
     }
   }
@@ -268,7 +270,14 @@ export function htmlToModuleContent(html: string): ModuleContentResult {
       case 'h2': {
         const title = plainText(inlineOf(node)).trim();
         if (!title) break;
-        currentLesson = { key: '', title, blocks: [] };
+        // A Heading 2 straight after another one is a topic title over the lessons that follow,
+        // not a lesson of its own: it moves onto this lesson instead of staying an empty lesson.
+        const topics: string[] = [];
+        if (currentLesson && currentLesson.blocks.length === 0) {
+          lessons.pop();
+          topics.push(...(currentLesson.topics ?? []), currentLesson.title);
+        }
+        currentLesson = topics.length > 0 ? { key: '', title, topics, blocks: [] } : { key: '', title, blocks: [] };
         lessonQuestionCount = 0;
         lessons.push(currentLesson);
         break;

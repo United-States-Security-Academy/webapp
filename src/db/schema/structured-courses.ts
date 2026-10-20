@@ -44,6 +44,9 @@ export interface StructuredLessonContent {
   // learner's progress on lessons that weren't renamed.
   key: string;
   title: string;
+  // Heading 2s with nothing under them, just before this lesson (topic titles such as
+  // "Uniforms"). They're shown above the lesson title instead of as empty lessons.
+  topics?: string[];
   blocks: StructuredBlock[];
 }
 

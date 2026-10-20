@@ -42,6 +42,7 @@ export const structuredModuleContentSchema: z.ZodType<StructuredModuleContent> =
       z.object({
         key: z.string().min(1),
         title: z.string().min(1),
+        topics: z.array(z.string().min(1)).optional(),
         blocks: z.array(blockSchema),
       }),
     )
