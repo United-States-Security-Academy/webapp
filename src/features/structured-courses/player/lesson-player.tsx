@@ -115,7 +115,12 @@ export function LessonPlayer({ lesson, imageUrls, showLockedContent = false, onA
     // "user": follows the device's reduce-motion setting for every animation inside the player.
     <MotionConfig reducedMotion="user">
       <article className="flex flex-col gap-6">
-        <h2 className="text-2xl font-bold leading-tight text-slate-900 sm:text-3xl">{lesson.title}</h2>
+        <header className="flex flex-col gap-2">
+          {lesson.topics && lesson.topics.length > 0 && (
+            <p className="text-sm font-semibold uppercase tracking-wide text-gold-600">{lesson.topics.join(' › ')}</p>
+          )}
+          <h2 className="text-2xl font-bold leading-tight text-slate-900 sm:text-3xl">{lesson.title}</h2>
+        </header>
         {lesson.blocks.length === 0 ? (
           <p className="text-slate-500">This lesson has no content yet.</p>
         ) : (

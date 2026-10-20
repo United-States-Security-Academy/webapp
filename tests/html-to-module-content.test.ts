@@ -48,6 +48,15 @@ describe('htmlToModuleContent', () => {
     expect(result.warnings).toEqual(["Lesson 'L': a list inside a list was flattened into one level."]);
   });
 
+  it('warns about flattened lists once per lesson', () => {
+    const nestedList = '<ul><li>A<ul><li>a</li></ul></li><li>B<ul><li>b</li></ul></li></ul>';
+    const result = parseOk(`<h1>M</h1><h2>One</h2>${nestedList}${nestedList}<h2>Two</h2>${nestedList}`);
+    expect(result.warnings).toEqual([
+      "Lesson 'One': a list inside a list was flattened into one level.",
+      "Lesson 'Two': a list inside a list was flattened into one level.",
+    ]);
+  });
+
   it('reads tables and detects a header row', () => {
     const { lessons } = parseOk(
       '<h1>M</h1><h2>L</h2><table><thead><tr><th><p>Rank</p></th></tr></thead><tbody><tr><td><p>One</p><p>Two</p></td></tr></tbody></table>',
@@ -105,8 +114,19 @@ describe('htmlToModuleContent', () => {
     expect(second.lessons[0]?.key).toBe(first.lessons[0]?.key);
   });
 
-  it('warns about an empty lesson', () => {
-    const { warnings } = parseOk('<h1>M</h1><h2>Empty</h2><h2>Full</h2><p>x</p>');
+  it('turns Heading 2s with nothing under them into topics of the next lesson', () => {
+    const { lessons, warnings } = parseOk(
+      '<h1>M</h1><h2>Rules and Laws</h2><h2>Uniforms</h2><h2>Pocket Card</h2><p>x</p><h2>Next</h2><p>y</p>',
+    );
+    expect(lessons.map((lesson) => [lesson.key, lesson.title, lesson.topics])).toEqual([
+      ['pocket-card', 'Pocket Card', ['Rules and Laws', 'Uniforms']],
+      ['next', 'Next', undefined],
+    ]);
+    expect(warnings).toEqual([]);
+  });
+
+  it('warns about an empty lesson at the end of the module', () => {
+    const { warnings } = parseOk('<h1>M</h1><h2>Full</h2><p>x</p><h2>Empty</h2>');
     expect(warnings).toEqual(["Lesson 'Empty' has no content under its heading."]);
   });
 
