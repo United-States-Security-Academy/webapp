@@ -6,7 +6,7 @@ import { COURSE_CATEGORIES, COURSE_CATEGORY_META } from '@/features/courses/cour
 // Rebuilt at most hourly, so newly published courses show up without a redeploy.
 export const revalidate = 3600;
 
-const STATIC_PATHS = ['', '/about', '/courses', '/certifications', '/training-modes', '/resources', '/contact', '/privacy', '/terms'];
+const STATIC_PATHS = ['', '/about', '/courses', '/certifications', '/training-modes', '/veterans', '/resources', '/contact', '/privacy', '/terms'];
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const publishedCourses = await listPublishedCourses();
