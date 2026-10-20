@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { Icon, type IconName } from '@/components/ui/icon';
+import { VeteransAnnouncementSection } from '@/features/marketing/veterans-announcement-section';
 import { WhyTrainSection } from '@/features/marketing/why-train-section';
 import { HowItWorksSection } from '@/features/marketing/how-it-works-section';
 import { TrainingProgramsSection } from '@/features/marketing/training-programs-section';
@@ -102,6 +103,7 @@ export default async function HomePage() {
       </section>
 
       <WhyTrainSection />
+      <VeteransAnnouncementSection />
       <HowItWorksSection />
 
       <TrainingProgramsSection />
