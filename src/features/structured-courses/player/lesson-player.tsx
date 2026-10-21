@@ -115,6 +115,7 @@ export function LessonPlayer({ lesson, imageUrls, showLockedContent = false, onA
     // "user": follows the device's reduce-motion setting for every animation inside the player.
     <MotionConfig reducedMotion="user">
       <article className="flex flex-col gap-6">
+        {/* Topics: title-only Heading 2s from the Word file that lead into this lesson. */}
         <header className="flex flex-col gap-2">
           {lesson.topics && lesson.topics.length > 0 && (
             <p className="text-sm font-semibold uppercase tracking-wide text-gold-600">{lesson.topics.join(' › ')}</p>

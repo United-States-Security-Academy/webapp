@@ -332,6 +332,7 @@ export function htmlToModuleContent(html: string): ModuleContentResult {
     }
     usedKeys.add(key);
     lesson.key = key;
+    // Only the last lesson can still be empty here: earlier empty ones became topics (see 'h2').
     if (lesson.blocks.length === 0) warnings.push(`${lessonLocation(lesson)} has no content under its heading.`);
   });
 
