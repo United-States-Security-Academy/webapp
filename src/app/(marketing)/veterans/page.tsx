@@ -9,6 +9,10 @@ export const metadata: Metadata = {
   description: 'Verified U.S. military veterans can train with United States Security Academy tuition-free. See who is eligible and how to apply.',
 };
 
+// Where the home page's veterans announcement (APPLY NOW) leads. There is no online application:
+// veterans apply by phone or email and staff verify their service. The wording below is USSA's
+// offer to the public, so check changes to it with the organisation. The header reuses the
+// announcement's artwork and gold styling (veterans-announcement-section.tsx); keep them matching.
 const APPLY_EMAIL_HREF = `mailto:${SITE_CONTACT.email}?subject=${encodeURIComponent('Veterans tuition-free training application')}`;
 
 const ELIGIBILITY: string[] = [

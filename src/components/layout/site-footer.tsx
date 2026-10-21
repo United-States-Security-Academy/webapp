@@ -25,6 +25,12 @@ export function SiteFooter() {
               <p className="text-[10px] font-semibold tracking-[0.15em] text-gold-400">TRAIN &middot; CERTIFY &middot; SERVE &middot; LEAD</p>
             </div>
           </div>
+          <p className="mt-4 text-xs text-slate-400">
+            A <span className="font-semibold text-slate-200">Deltacon Global Inc.</span> Company
+          </p>
+          <p className="mt-1 text-xs text-slate-400">
+            License No. <span className="font-semibold tracking-wide text-slate-200">F28377901</span>
+          </p>
         </div>
 
         <div className="text-sm text-slate-300">
