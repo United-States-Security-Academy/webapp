@@ -24,6 +24,8 @@ export type EnrolledCourseStatus = 'not_started' | 'in_progress' | 'exam_pending
 export interface AdminUserCourse {
   course: Course;
   enrolledAt: Date;
+  // True when an admin gave this access from the admin console rather than the learner enrolling.
+  grantedByAdmin: boolean;
   progress: CourseProgress;
   status: EnrolledCourseStatus;
   examAttemptCount: number;
@@ -104,6 +106,7 @@ export async function getUserDetail(userId: string) {
     return {
       course,
       enrolledAt: enrollment.enrolledAt,
+      grantedByAdmin: enrollment.grantedBy !== null,
       progress,
       status,
       examAttemptCount: courseAttempts.length,
