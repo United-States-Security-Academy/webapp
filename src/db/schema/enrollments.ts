@@ -14,6 +14,9 @@ export const enrollments = pgTable(
     courseId: uuid('course_id').notNull().references(() => courses.id, { onDelete: 'cascade' }),
     status: enrollmentStatusEnum('status').notNull().default('active'),
     enrolledAt: timestamp('enrolled_at', { withTimezone: true }).notNull().defaultNow(),
+    // The admin who gave this learner access from the admin console (null = enrolled themselves,
+    // through checkout or a free course).
+    grantedBy: uuid('granted_by').references(() => users.id, { onDelete: 'set null' }),
   },
   (table) => ({
     userIdCourseIdUnique: uniqueIndex('enrollments_user_id_course_id_unique').on(table.userId, table.courseId),

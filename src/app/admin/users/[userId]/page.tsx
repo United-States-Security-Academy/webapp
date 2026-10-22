@@ -9,6 +9,9 @@ import { getMissingProfileFields, type RequiredProfileField } from '@/features/p
 import { GOVERNMENT_ID_LABEL, maskGovernmentId } from '@/features/profile/government-id';
 import { Icon, type IconName } from '@/components/ui/icon';
 import { ResetExamAttemptsButton } from '@/features/admin/reset-exam-attempts-button';
+import { GrantCourseAccessForm } from '@/features/admin/grant-course-access-form';
+import { RevokeCourseAccessButton } from '@/features/admin/revoke-course-access-button';
+import { listPublishedCourses } from '@/features/courses/course-queries';
 
 const CARD_CLASS_NAME = 'rounded-xl border border-slate-200 bg-white shadow-sm';
 
@@ -79,13 +82,22 @@ export default async function AdminUserDetailPage({ params }: { params: Promise<
   const { userId } = await params;
   if (!/^[0-9a-f-]{36}$/i.test(userId)) notFound();
 
-  const [authenticatedUser, detail] = await Promise.all([getAuthenticatedUserFromSession(), getUserDetail(userId)]);
+  const [authenticatedUser, detail, publishedCourses] = await Promise.all([
+    getAuthenticatedUserFromSession(),
+    getUserDetail(userId),
+    listPublishedCourses(),
+  ]);
   if (!detail) notFound();
 
   const { user, profile, enrolledCourses, completedLessons, examAttempts, payments, totalPaidByCurrency, discountRedemptions, ownedCourses } =
     detail;
   const isSelf = authenticatedUser?.userId === user.id;
   const missingProfileFields = getMissingProfileFields(profile);
+  const enrolledCourseIds = new Set(enrolledCourses.map((entry) => entry.course.id));
+  const grantableCourses = publishedCourses
+    .filter((course) => !enrolledCourseIds.has(course.id))
+    .sort((first, second) => first.title.localeCompare(second.title))
+    .map((course) => ({ id: course.id, title: course.title, isFree: course.priceAmountMinor === 0 }));
   const certifiedCount = enrolledCourses.filter((entry) => entry.status === 'certified').length;
   const totalPaid =
     totalPaidByCurrency.size === 0
@@ -153,10 +165,13 @@ export default async function AdminUserDetailPage({ params }: { params: Promise<
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
         <div className="flex min-w-0 flex-col gap-6">
           <SectionCard title="Courses" subtitle="Progress and status in every course this user is enrolled in">
+            <div className="mb-5">
+              <GrantCourseAccessForm userId={user.id} displayName={user.displayName} courses={grantableCourses} />
+            </div>
             {enrolledCourses.length === 0 ? (
               <EmptyNote>Not enrolled in any course.</EmptyNote>
             ) : (
-              <div className="-mx-5 -my-5 overflow-x-auto">
+              <div className="-mx-5 -mb-5 overflow-x-auto border-t border-slate-100">
                 <table className="w-full min-w-[620px] text-left text-sm">
                   <thead>
                     <tr className="border-b border-slate-100 bg-slate-50 text-xs font-bold uppercase tracking-wide text-slate-500">
@@ -168,7 +183,7 @@ export default async function AdminUserDetailPage({ params }: { params: Promise<
                     </tr>
                   </thead>
                   <tbody>
-                    {enrolledCourses.map(({ course, enrolledAt, progress, status, examAttemptCount, bestExamScore, examMaxAttempts, examAttemptsTowardLimit }) => {
+                    {enrolledCourses.map(({ course, enrolledAt, grantedByAdmin, progress, status, examAttemptCount, bestExamScore, examMaxAttempts, examAttemptsTowardLimit }) => {
                       const percentage = progress.totalLessons === 0 ? 0 : Math.round((progress.completedLessons / progress.totalLessons) * 100);
                       return (
                         <tr key={course.id} className="border-b border-slate-50 last:border-0">
@@ -177,7 +192,20 @@ export default async function AdminUserDetailPage({ params }: { params: Promise<
                               {course.title}
                             </Link>
                           </td>
-                          <td className="whitespace-nowrap px-4 py-3 text-slate-600">{formatDate(enrolledAt)}</td>
+                          <td className="whitespace-nowrap px-4 py-3 text-slate-600">
+                            {formatDate(enrolledAt)}
+                            {grantedByAdmin && (
+                              <div className="mt-0.5 flex items-center gap-2 text-xs">
+                                <span className="text-slate-400">Given by admin</span>
+                                <RevokeCourseAccessButton
+                                  userId={user.id}
+                                  courseId={course.id}
+                                  courseTitle={course.title}
+                                  displayName={user.displayName}
+                                />
+                              </div>
+                            )}
+                          </td>
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-2">
                               <div className="h-2 w-24 overflow-hidden rounded-full bg-slate-100">
