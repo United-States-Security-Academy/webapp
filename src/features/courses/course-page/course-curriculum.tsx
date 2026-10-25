@@ -31,9 +31,11 @@ export function PdfCourseCurriculum({
               <span className="mr-2 text-xs font-bold uppercase tracking-wide text-slate-400">Module {moduleIndex + 1}</span>
               {moduleRecord.title}
             </h3>
-            <span className="shrink-0 text-xs text-slate-500">
-              {moduleLessons.length} lesson{moduleLessons.length === 1 ? '' : 's'}
-            </span>
+            {hasFullAccess && (
+              <span className="shrink-0 text-xs text-slate-500">
+                {moduleLessons.length} lesson{moduleLessons.length === 1 ? '' : 's'}
+              </span>
+            )}
           </div>
           <ul className="flex flex-col divide-y divide-slate-100 border-t border-slate-100">
             {moduleLessons.map((lessonRecord) => {

@@ -134,7 +134,8 @@ export async function CourseDetailContent({ courseSlug, basePath }: CourseDetail
 
   const curriculumSection = (
     <CoursePageSection key="curriculum" id="curriculum" title="Course content">
-      {lessonCount > 0 && (
+      {/* The size of the course is only revealed once the learner has paid (or enrolled). */}
+      {hasFullAccess && lessonCount > 0 && (
         <p className="-mt-2 mb-4 text-sm text-slate-500">
           {moduleCount} module{moduleCount === 1 ? '' : 's'} &middot; {lessonCount} lesson{lessonCount === 1 ? '' : 's'}
         </p>
