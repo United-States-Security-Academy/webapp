@@ -352,6 +352,7 @@ export default async function AdminUserDetailPage({ params }: { params: Promise<
               <DetailRow label="City">{profile?.city}</DetailRow>
               <DetailRow label="State">{profile?.state}</DetailRow>
               <DetailRow label="Country">{profile?.country}</DetailRow>
+              <DetailRow label="License number">{profile?.licenseNumber}</DetailRow>
             </dl>
           </SectionCard>
 

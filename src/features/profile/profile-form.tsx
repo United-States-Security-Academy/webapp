@@ -31,6 +31,7 @@ export function ProfileForm({ profile, hasSavedProfile }: { profile: StudentProf
   const [state, setState] = useState(profile?.state ?? '');
   const [city, setCity] = useState(profile?.city ?? '');
   const [residentialAddress, setResidentialAddress] = useState(profile?.residentialAddress ?? '');
+  const [licenseNumber, setLicenseNumber] = useState(profile?.licenseNumber ?? '');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -47,6 +48,7 @@ export function ProfileForm({ profile, hasSavedProfile }: { profile: StudentProf
       state,
       city,
       residentialAddress,
+      licenseNumber,
     });
     if (!result.success) {
       setErrorMessage(result.error);
@@ -78,6 +80,7 @@ export function ProfileForm({ profile, hasSavedProfile }: { profile: StudentProf
           <ProfileSummaryField label="State" value={profile?.state} />
           <ProfileSummaryField label="City" value={profile?.city} />
           <ProfileSummaryField label="Residential address" value={profile?.residentialAddress} />
+          <ProfileSummaryField label="License number" value={profile?.licenseNumber} />
         </dl>
       </div>
     );
@@ -155,6 +158,18 @@ export function ProfileForm({ profile, hasSavedProfile }: { profile: StudentProf
           value={residentialAddress ?? ''}
           onChange={(changeEvent) => setResidentialAddress(changeEvent.target.value)}
           required
+        />
+      </div>
+
+      <div>
+        <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-slate-600">
+          License number <span className="font-normal normal-case text-slate-400">(if applicable)</span>
+        </label>
+        <Input
+          placeholder="Leave blank if you don't have one"
+          value={licenseNumber}
+          onChange={(changeEvent) => setLicenseNumber(changeEvent.target.value)}
+          maxLength={50}
         />
       </div>
 

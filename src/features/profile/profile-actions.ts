@@ -13,6 +13,8 @@ import {
   getProfilePhotoPublicUrl,
 } from './profile-photo-storage-client';
 
+const MAX_LICENSE_NUMBER_LENGTH = 50;
+
 type UpsertStudentProfileInput = Omit<NewStudentProfile, 'userId' | 'updatedAt' | 'photoUrl'>;
 
 const PROFILE_FIELDS = [
@@ -24,6 +26,7 @@ const PROFILE_FIELDS = [
   'state',
   'city',
   'residentialAddress',
+  'licenseNumber',
 ] as const satisfies readonly (keyof UpsertStudentProfileInput)[];
 
 export async function upsertStudentProfile(input: UpsertStudentProfileInput): Promise<ActionResult<StudentProfile>> {
@@ -31,6 +34,13 @@ export async function upsertStudentProfile(input: UpsertStudentProfileInput): Pr
     const authenticatedUser = await requireAuthenticatedUserFromSession();
     // Only the form's fields: a userId or photoUrl sent by the caller must never reach the query.
     const profileFields = pickFields(input, PROFILE_FIELDS);
+    // The license number is optional: a cleared field is stored as "no license", not an empty string.
+    if (profileFields.licenseNumber !== undefined) {
+      profileFields.licenseNumber = typeof profileFields.licenseNumber === 'string' ? profileFields.licenseNumber.trim() || null : null;
+      if (profileFields.licenseNumber && profileFields.licenseNumber.length > MAX_LICENSE_NUMBER_LENGTH) {
+        return { success: false, error: `License number must be at most ${MAX_LICENSE_NUMBER_LENGTH} characters.` };
+      }
+    }
 
     const [profile] = await db
       .insert(studentProfiles)
