@@ -8,6 +8,7 @@ import { AssessmentSettingsForm } from '@/features/assessments/assessment-settin
 import { AddQuestionForm } from '@/features/assessments/add-question-form';
 import { QuestionEditor } from '@/features/assessments/question-editor';
 import { DeleteAssessmentButton } from '@/features/assessments/delete-assessment-button';
+import { ImportQuestionsFromWord } from '@/features/assessments/import-questions-from-word';
 
 export default async function InstructorCourseAssessmentPage({ params }: { params: Promise<{ courseSlug: string }> }) {
   const { courseSlug } = await params;
@@ -45,6 +46,9 @@ export default async function InstructorCourseAssessmentPage({ params }: { param
               </div>
               <div className="mt-4">
                 <AddQuestionForm assessmentId={assessment.id} />
+              </div>
+              <div className="mt-4">
+                <ImportQuestionsFromWord assessmentId={assessment.id} existingQuestionCount={assessment.questions.length} />
               </div>
             </section>
 
