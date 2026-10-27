@@ -33,12 +33,14 @@ export const heading1 = (text: string) => paragraph(text, 'Heading1');
 export const heading2 = (text: string) => paragraph(text, 'Heading2');
 export const heading3 = (text: string) => paragraph(text, 'Heading3');
 
-// numId 1 = numbered list (steps), numId 2 = bulleted list (points); see NUMBERING below.
-function listItem(text: string, numId: number): string {
-  return `<w:p><w:pPr><w:pStyle w:val="ListParagraph"/><w:numPr><w:ilvl w:val="0"/><w:numId w:val="${numId}"/></w:numPr></w:pPr>${runXml(text)}</w:p>`;
+// numId 1 = numbered list (steps, with lettered sub-items at level 1), numId 2 = bulleted list
+// (points), numId 3 = lettered list (A., B., C.); see NUMBERING below.
+export function listItem(text: string, numId: number, level = 0): string {
+  return `<w:p><w:pPr><w:pStyle w:val="ListParagraph"/><w:numPr><w:ilvl w:val="${level}"/><w:numId w:val="${numId}"/></w:numPr></w:pPr>${runXml(text)}</w:p>`;
 }
 export const numberedList = (...items: string[]) => items.map((item) => listItem(item, 1)).join('');
 export const bulletedList = (...items: string[]) => items.map((item) => listItem(item, 2)).join('');
+export const letteredList = (...items: string[]) => items.map((item) => listItem(item, 3)).join('');
 
 // The first row is marked "Repeat as header row", which is how Word records a table header.
 export function table(rows: string[][]): string {
@@ -83,10 +85,12 @@ const STYLES = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 
 const NUMBERING = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <w:numbering xmlns:w="${W}">
-  <w:abstractNum w:abstractNumId="0"><w:lvl w:ilvl="0"><w:start w:val="1"/><w:numFmt w:val="decimal"/><w:lvlText w:val="%1."/></w:lvl></w:abstractNum>
+  <w:abstractNum w:abstractNumId="0"><w:lvl w:ilvl="0"><w:start w:val="1"/><w:numFmt w:val="decimal"/><w:lvlText w:val="%1."/></w:lvl><w:lvl w:ilvl="1"><w:start w:val="1"/><w:numFmt w:val="upperLetter"/><w:lvlText w:val="%2."/></w:lvl></w:abstractNum>
   <w:abstractNum w:abstractNumId="1"><w:lvl w:ilvl="0"><w:numFmt w:val="bullet"/><w:lvlText w:val="•"/></w:lvl></w:abstractNum>
+  <w:abstractNum w:abstractNumId="2"><w:lvl w:ilvl="0"><w:start w:val="1"/><w:numFmt w:val="upperLetter"/><w:lvlText w:val="%1."/></w:lvl></w:abstractNum>
   <w:num w:numId="1"><w:abstractNumId w:val="0"/></w:num>
   <w:num w:numId="2"><w:abstractNumId w:val="1"/></w:num>
+  <w:num w:numId="3"><w:abstractNumId w:val="2"/></w:num>
 </w:numbering>`;
 
 // `imageContentType` changes the type the embedded picture is declared as (e.g. 'image/x-emf'),
