@@ -20,6 +20,9 @@ export const studentProfiles = pgTable('student_profiles', {
   state: text('state'),
   city: text('city'),
   residentialAddress: text('residential_address'),
+  // Optional, unlike the fields above: only students who already hold a security license have one,
+  // so it never counts toward profile completeness.
+  licenseNumber: text('license_number'),
   photoUrl: text('photo_url'),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });
