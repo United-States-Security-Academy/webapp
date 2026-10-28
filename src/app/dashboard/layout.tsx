@@ -11,6 +11,7 @@ import { ThemeScope } from '@/features/theme/theme-scope';
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const authenticatedUser = await getAuthenticatedUserFromSession();
   if (!authenticatedUser) redirect('/sign-in');
+  if (authenticatedUser.isAwaitingAdminTwoFactor) redirect('/two-factor');
 
   const [profile, themePreference] = await Promise.all([getStudentProfile(authenticatedUser.userId), getThemePreference()]);
 
