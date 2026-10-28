@@ -7,7 +7,7 @@ export default function robots(): MetadataRoute.Robots {
       userAgent: '*',
       allow: '/',
       // Signed-in areas and one-off flows have nothing useful for search results.
-      disallow: ['/admin', '/instructor', '/dashboard', '/api/', '/auth/', '/checkout/', '/post-sign-in', '/reset-password'],
+      disallow: ['/admin', '/instructor', '/dashboard', '/api/', '/auth/', '/checkout/', '/post-sign-in', '/reset-password', '/two-factor'],
     },
     sitemap: `${env.NEXT_PUBLIC_APP_URL}/sitemap.xml`,
   };

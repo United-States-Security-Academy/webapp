@@ -8,6 +8,7 @@ import { getDashboardHref } from '@/features/auth/get-dashboard-href';
 export default async function PostSignInPage() {
   const authenticatedUser = await getAuthenticatedUserFromSession();
   if (!authenticatedUser) redirect('/sign-in');
+  if (authenticatedUser.isAwaitingAdminTwoFactor) redirect('/two-factor');
 
   redirect(getDashboardHref(authenticatedUser.role));
 }
