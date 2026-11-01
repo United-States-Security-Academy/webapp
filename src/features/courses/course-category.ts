@@ -9,6 +9,9 @@ interface CourseCategoryMeta {
   programTitle: string;
   // One-line summary shown on the homepage program cards.
   tagline: string;
+  // Search-result title and description for the /programs page, phrased the way people search.
+  seoTitle: string;
+  seoDescription: string;
   icon: IconName;
   // Kebab-case segment used in /programs/[urlSlug] — distinct from the camelCase DB enum value.
   urlSlug: string;
@@ -21,6 +24,9 @@ export const COURSE_CATEGORY_META: Record<CourseCategory, CourseCategoryMeta> = 
     label: 'Military',
     programTitle: 'Military Training',
     tagline: 'Leadership, tactical skills, mission readiness, ethics, and professional development for military personnel.',
+    seoTitle: 'Military Training Courses & Certification',
+    seoDescription:
+      'Online military training courses covering leadership, tactical decision-making, ethics and mission readiness for service members at every career stage.',
     icon: 'military',
     urlSlug: 'military',
     image: '/Picture3.png',
@@ -34,6 +40,9 @@ export const COURSE_CATEGORY_META: Record<CourseCategory, CourseCategoryMeta> = 
     label: 'Law Enforcement',
     programTitle: 'Law Enforcement Training',
     tagline: 'Use of force, investigations, patrol operations, de-escalation, active shooter response, and more.',
+    seoTitle: 'Law Enforcement Training Courses Online',
+    seoDescription:
+      'Law enforcement officer training in use of force, de-escalation, investigations, patrol operations and active shooter response, built on real scenarios.',
     icon: 'lawEnforcement',
     urlSlug: 'law-enforcement',
     image: '/Picture4.png',
@@ -47,6 +56,9 @@ export const COURSE_CATEGORY_META: Record<CourseCategory, CourseCategoryMeta> = 
     label: 'Corrections',
     programTitle: 'Corrections Training',
     tagline: 'Inmate supervision, crisis intervention, report writing, legal updates, and operational safety.',
+    seoTitle: 'Corrections Officer Training Courses',
+    seoDescription:
+      'Corrections officer training in inmate supervision, crisis intervention, report writing, legal updates and operational safety for institutional staff.',
     icon: 'corrections',
     urlSlug: 'corrections',
     image: '/Picture2.png',
@@ -60,6 +72,9 @@ export const COURSE_CATEGORY_META: Record<CourseCategory, CourseCategoryMeta> = 
     label: 'Security',
     programTitle: 'Security Training',
     tagline: 'Security officer certification, site operations, access control, risk management, and more.',
+    seoTitle: 'Security Officer Training & Certification Online',
+    seoDescription:
+      'Security officer training and certification covering site operations, access control, risk management and incident response for security professionals.',
     icon: 'security',
     urlSlug: 'security',
     image: '/Picture1.png',
@@ -73,6 +88,9 @@ export const COURSE_CATEGORY_META: Record<CourseCategory, CourseCategoryMeta> = 
     label: 'Safety',
     programTitle: 'Safety & Emergency Preparedness',
     tagline: 'Workplace safety, OSHA compliance, first aid/CPR, fire safety, and emergency response training.',
+    seoTitle: 'Safety & Emergency Preparedness Training',
+    seoDescription:
+      'Workplace safety training covering OSHA compliance, first aid and CPR, fire safety and emergency response planning for safety officers and managers.',
     icon: 'safety',
     urlSlug: 'safety',
     image: '/Picture5.png',

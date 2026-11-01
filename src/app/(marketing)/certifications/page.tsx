@@ -2,11 +2,13 @@ import Link from 'next/link';
 import { PageBanner } from '@/components/layout/page-banner';
 import { Icon, type IconName } from '@/components/ui/icon';
 import type { Metadata } from 'next';
+import { buildPageMetadata } from '@/features/seo/site-seo';
 
-export const metadata: Metadata = {
-  title: 'Certifications',
-  description: 'Industry-recognized certifications across every training program USSA offers.',
-};
+export const metadata: Metadata = buildPageMetadata({
+  title: 'Security Officer & Law Enforcement Certifications',
+  description: 'Earn security officer, law enforcement, corrections, military and safety certifications. Compare certification tracks and see how to get certified.',
+  path: '/certifications',
+});
 
 const CERTIFICATIONS: { icon: IconName; title: string; description: string }[] = [
   { icon: 'military', title: 'Military Training Certification', description: 'Leadership, tactical skills, and mission readiness for military personnel.' },

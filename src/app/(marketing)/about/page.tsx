@@ -2,11 +2,13 @@ import { PageBanner } from '@/components/layout/page-banner';
 import { StatsSection } from '@/features/marketing/stats-section';
 import { Icon, type IconName } from '@/components/ui/icon';
 import type { Metadata } from 'next';
+import { buildPageMetadata } from '@/features/seo/site-seo';
 
-export const metadata: Metadata = {
-  title: 'About Us',
-  description: 'Who we are and how USSA trains security, law enforcement, corrections, military and safety professionals.',
-};
+export const metadata: Metadata = buildPageMetadata({
+  title: 'About Our Security & Law Enforcement Academy',
+  description: 'Learn about United States Security Academy, a Deltacon Global company training security, law enforcement, corrections, military and safety professionals.',
+  path: '/about',
+});
 
 const CORE_VALUES: { icon: IconName; title: string; description: string }[] = [
   { icon: 'shieldCheck', title: 'Honor', description: 'We hold ourselves and our graduates to the highest standard of conduct.' },

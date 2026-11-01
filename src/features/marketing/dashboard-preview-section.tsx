@@ -19,9 +19,9 @@ const MOCK_STATS: { label: string; value: number; icon: IconName }[] = [
   { label: 'Lessons done', value: 13, icon: 'checkCircle' },
 ];
 
-const MOCK_COURSES: { title: string; lessons: string; percentage: number }[] = [
-  { title: 'Security Officer Certification', lessons: '8/10 lessons', percentage: 80 },
-  { title: 'Law Enforcement Use of Force', lessons: '5/11 lessons', percentage: 45 },
+const MOCK_COURSES: { title: string; completedLessons: number; totalLessons: number }[] = [
+  { title: 'Security Officer Certification', completedLessons: 8, totalLessons: 10 },
+  { title: 'Law Enforcement Use of Force', completedLessons: 5, totalLessons: 11 },
 ];
 
 const MOCK_HISTORY: { text: string; time: string }[] = [
@@ -120,20 +120,26 @@ export function DashboardPreviewSection() {
               <div>
                 <p className="mb-2 text-[11px] font-bold uppercase tracking-wide text-slate-500">My Courses</p>
                 <div className="grid gap-3 sm:grid-cols-2">
-                  {MOCK_COURSES.map((course, index) => (
-                    <div
-                      key={course.title}
-                      className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white p-3"
-                      style={revealStyle(isVisible, 450 + index * 120)}
-                    >
-                      <div className="min-w-0">
-                        <p className="truncate text-xs font-bold text-navy-900">{course.title}</p>
-                        <p className="mt-0.5 text-[11px] text-slate-500">{course.lessons}</p>
+                  {MOCK_COURSES.map((course, index) => {
+                    const percentage = Math.round((course.completedLessons / course.totalLessons) * 100);
+                    return (
+                      <div
+                        key={course.title}
+                        className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white p-3"
+                        style={revealStyle(isVisible, 450 + index * 120)}
+                      >
+                        <div className="min-w-0">
+                          <p className="truncate text-xs font-bold text-navy-900">{course.title}</p>
+                          <p className="mt-0.5 text-[11px] text-slate-500">
+                            {course.completedLessons}/{course.totalLessons} lessons
+                          </p>
+                        </div>
+                        {/* The ring animates from 0 once visible; the number always shows the real value,
+                            including in the server HTML. */}
+                        <RadialProgress percentage={isVisible ? percentage : 0} label={`${percentage}%`} size={40} strokeWidth={4} />
                       </div>
-                      {/* Animates from 0 to its target percentage once visible, via RadialProgress's own transition. */}
-                      <RadialProgress percentage={isVisible ? course.percentage : 0} size={40} strokeWidth={4} />
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
 

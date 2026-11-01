@@ -2,12 +2,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Icon } from '@/components/ui/icon';
 import { SITE_CONTACT } from '@/features/site/site-contact';
-
-const SOCIAL_LINKS = [
-  { label: 'Facebook', initials: 'f', href: '#' },
-  { label: 'LinkedIn', initials: 'in', href: '#' },
-  { label: 'YouTube', initials: '▶', href: '#' },
-];
+import { ACTIVE_SOCIAL_LINKS } from '@/features/seo/social-links';
 
 export function SiteFooter() {
   return (
@@ -15,7 +10,7 @@ export function SiteFooter() {
       <div className="mx-auto grid max-w-7xl gap-8 px-4 py-10 sm:grid-cols-2 lg:grid-cols-4">
         <div>
           <div className="flex items-center gap-3">
-            <Image src="/ussalogo.png" alt="USSA seal" width={64} height={64} className="h-16 w-16 shrink-0" />
+            <Image src="/ussalogo.png" alt="United States Security Academy seal" width={64} height={64} className="h-16 w-16 shrink-0" />
             <div>
               <p className="text-sm font-extrabold leading-tight">
                 UNITED STATES
@@ -51,21 +46,26 @@ export function SiteFooter() {
           </ul>
         </div>
 
-        <div>
-          <h3 className="text-sm font-bold tracking-wide text-gold-400">FOLLOW US</h3>
-          <div className="mt-3 flex gap-2">
-            {SOCIAL_LINKS.map((socialLink) => (
-              <Link
-                key={socialLink.label}
-                href={socialLink.href}
-                aria-label={socialLink.label}
-                className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-xs font-bold hover:bg-gold-500 hover:text-navy-900"
-              >
-                {socialLink.initials}
-              </Link>
-            ))}
+        {/* Only profiles with a real URL are listed (see social-links.ts); no column while there are none. */}
+        {ACTIVE_SOCIAL_LINKS.length > 0 && (
+          <div>
+            <h3 className="text-sm font-bold tracking-wide text-gold-400">FOLLOW US</h3>
+            <div className="mt-3 flex gap-2">
+              {ACTIVE_SOCIAL_LINKS.map((socialLink) => (
+                <a
+                  key={socialLink.label}
+                  href={socialLink.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={`United States Security Academy on ${socialLink.label}`}
+                  className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-xs font-bold hover:bg-gold-500 hover:text-navy-900"
+                >
+                  {socialLink.initials}
+                </a>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       <div className="border-t border-white/10">
