@@ -1,6 +1,9 @@
 import { redirect } from 'next/navigation';
 import { getAuthenticatedUserFromSession } from '@/features/auth/get-authenticated-user';
 import { ConsoleShell } from '@/features/admin/console-shell';
+import { NO_INDEX_METADATA } from '@/features/seo/site-seo';
+
+export const metadata = NO_INDEX_METADATA;
 
 export default async function InstructorLayout({ children }: { children: React.ReactNode }) {
   const authenticatedUser = await getAuthenticatedUserFromSession();
