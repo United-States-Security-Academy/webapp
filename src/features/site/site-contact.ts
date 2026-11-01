@@ -6,6 +6,14 @@ export const SITE_CONTACT = {
   additionalPhones: ['(832) 272-0511', '(817) 825-2872'],
   email: 'info@ussa-academy.com',
   address: '12808 W. Airport Blvd., Suite 224, Sugar Land, Texas 77478',
+  // The same address split into parts, for search engines' structured data. Keep in step with `address`.
+  postalAddress: {
+    streetAddress: '12808 W. Airport Blvd., Suite 224',
+    addressLocality: 'Sugar Land',
+    addressRegion: 'TX',
+    postalCode: '77478',
+    addressCountry: 'US',
+  },
   officeHours: 'Monday - Friday, 8:00 AM - 5:00 PM CT',
 } as const;
 

@@ -1,25 +1,18 @@
 import type { Metadata, Viewport } from 'next';
 import NextTopLoader from 'nextjs-toploader';
-import { env } from '@/env';
+import { JsonLd } from '@/components/seo/json-ld';
+import { DEFAULT_DESCRIPTION, DEFAULT_TITLE, OPEN_GRAPH_DEFAULTS, SITE_NAME, SITE_URL } from '@/features/seo/site-seo';
+import { buildOrganizationStructuredData } from '@/features/seo/structured-data';
 import './globals.css';
 
-const SITE_NAME = 'United States Security Academy';
-const SITE_DESCRIPTION =
-  'Online training and certification for security, law enforcement, corrections, military and safety professionals.';
-
+// The share image comes from app/opengraph-image.tsx.
 export const metadata: Metadata = {
-  metadataBase: new URL(env.NEXT_PUBLIC_APP_URL),
-  title: { default: SITE_NAME, template: `%s | USSA` },
-  description: SITE_DESCRIPTION,
+  metadataBase: new URL(SITE_URL),
+  title: { default: DEFAULT_TITLE, template: `%s | ${SITE_NAME}` },
+  description: DEFAULT_DESCRIPTION,
   applicationName: SITE_NAME,
-  openGraph: {
-    type: 'website',
-    siteName: SITE_NAME,
-    title: SITE_NAME,
-    description: SITE_DESCRIPTION,
-    locale: 'en_US',
-  },
-  twitter: { card: 'summary_large_image', title: SITE_NAME, description: SITE_DESCRIPTION },
+  openGraph: { ...OPEN_GRAPH_DEFAULTS, title: DEFAULT_TITLE, description: DEFAULT_DESCRIPTION },
+  twitter: { card: 'summary_large_image', title: DEFAULT_TITLE, description: DEFAULT_DESCRIPTION },
 };
 
 export const viewport: Viewport = {
@@ -32,6 +25,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <body>
+        <JsonLd data={buildOrganizationStructuredData()} />
         <NextTopLoader color="#c6a15b" height={3} showSpinner={false} shadow="0 0 10px #c6a15b,0 0 5px #c6a15b" />
         {children}
       </body>
