@@ -1,11 +1,13 @@
 import { PageBanner } from '@/components/layout/page-banner';
 import { Icon, type IconName } from '@/components/ui/icon';
 import type { Metadata } from 'next';
+import { buildPageMetadata } from '@/features/seo/site-seo';
 
-export const metadata: Metadata = {
-  title: 'Training Modes',
-  description: 'Three ways to train with USSA: web-based, classroom and instructor-led training.',
-};
+export const metadata: Metadata = buildPageMetadata({
+  title: 'Online, Classroom & Instructor-Led Training',
+  description: 'Train your way at United States Security Academy: self-paced web-based courses, in-person classroom sessions, or instructor-led training for agencies.',
+  path: '/training-modes',
+});
 
 const TRAINING_MODES: { icon: IconName; title: string; description: string; features: string[] }[] = [
   {
