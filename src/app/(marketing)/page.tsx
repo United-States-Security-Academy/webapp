@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { Icon, type IconName } from '@/components/ui/icon';
@@ -8,9 +9,15 @@ import { TrainingProgramsSection } from '@/features/marketing/training-programs-
 import { DashboardPreviewSection } from '@/features/marketing/dashboard-preview-section';
 import { StatsSection } from '@/features/marketing/stats-section';
 import { CtaBannerSection } from '@/features/marketing/cta-banner-section';
-import { FaqSection } from '@/features/marketing/faq-section';
+import { FAQ_ITEMS, FaqSection } from '@/features/marketing/faq-section';
+import { JsonLd } from '@/components/seo/json-ld';
+import { buildFaqStructuredData } from '@/features/seo/structured-data';
+import { DEFAULT_DESCRIPTION, buildPageMetadata } from '@/features/seo/site-seo';
 import { getAuthenticatedUserFromSession } from '@/features/auth/get-authenticated-user';
 import { getDashboardHref } from '@/features/auth/get-dashboard-href';
+
+// No title: the homepage uses the site's default title from the root layout.
+export const metadata: Metadata = buildPageMetadata({ description: DEFAULT_DESCRIPTION, path: '/' });
 
 const TRAINING_MODES: { icon: IconName; title: string; description: string }[] = [
   { icon: 'monitor', title: 'Web-Based Training', description: 'Learn Online Anytime, Anywhere' },
@@ -62,12 +69,12 @@ export default async function HomePage() {
         <div className="relative mx-auto grid w-full max-w-7xl gap-8 px-4 py-10 sm:px-6 sm:py-14 lg:grid-cols-[3fr_2fr] lg:items-center lg:gap-10 lg:px-4 lg:py-16">
           <div>
             <h1 className="text-2xl font-extrabold leading-tight sm:text-4xl lg:text-5xl">
-              PROFESSIONAL TRAINING,
+              SECURITY &amp; LAW ENFORCEMENT
               <br />
-              OPERATIONAL EXCELLENCE.
+              TRAINING AND CERTIFICATION
             </h1>
             <p className="mt-3 text-base font-semibold tracking-wide text-gold-400 sm:mt-4 sm:text-lg">
-              TRAINING &amp; CERTIFICATION FOR THOSE WHO PROTECT, SERVE &amp; LEAD.
+              PROFESSIONAL TRAINING, OPERATIONAL EXCELLENCE.
             </p>
             <p className="mt-4 max-w-xl text-sm leading-relaxed text-slate-300 sm:mt-6">
               United States Security Academy provides web-based, classroom,
@@ -144,6 +151,7 @@ export default async function HomePage() {
       </section>
 
       <FaqSection />
+      <JsonLd data={buildFaqStructuredData(FAQ_ITEMS)} />
     </>
   );
 }

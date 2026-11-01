@@ -5,6 +5,9 @@ import { PageBanner } from '@/components/layout/page-banner';
 import { listPublishedCourses } from '@/features/courses/course-queries';
 import { CourseCard } from '@/features/courses/course-card';
 import { COURSE_CATEGORIES, COURSE_CATEGORY_META, getCourseCategoryByUrlSlug } from '@/features/courses/course-category';
+import { JsonLd } from '@/components/seo/json-ld';
+import { buildPageMetadata } from '@/features/seo/site-seo';
+import { buildBreadcrumbStructuredData } from '@/features/seo/structured-data';
 
 export function generateStaticParams() {
   return COURSE_CATEGORIES.map((category) => ({ categorySlug: COURSE_CATEGORY_META[category].urlSlug }));
@@ -15,7 +18,11 @@ export async function generateMetadata({ params }: { params: Promise<{ categoryS
   const category = getCourseCategoryByUrlSlug(categorySlug);
   if (!category) return { title: 'Program not found' };
   const categoryMeta = COURSE_CATEGORY_META[category];
-  return { title: categoryMeta.programTitle, description: categoryMeta.tagline };
+  return buildPageMetadata({
+    title: categoryMeta.seoTitle,
+    description: categoryMeta.seoDescription,
+    path: `/programs/${categoryMeta.urlSlug}`,
+  });
 }
 
 export default async function ProgramDetailPage({ params }: { params: Promise<{ categorySlug: string }> }) {
@@ -28,6 +35,12 @@ export default async function ProgramDetailPage({ params }: { params: Promise<{ 
 
   return (
     <>
+      <JsonLd
+        data={buildBreadcrumbStructuredData([
+          { name: 'Home', path: '/' },
+          { name: categoryMeta.programTitle, path: `/programs/${categoryMeta.urlSlug}` },
+        ])}
+      />
       <PageBanner title={categoryMeta.programTitle} subtitle={categoryMeta.tagline} />
 
       <section className="bg-white py-12">

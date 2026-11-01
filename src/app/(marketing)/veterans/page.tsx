@@ -1,13 +1,15 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
+import { buildPageMetadata } from '@/features/seo/site-seo';
 import { Icon, type IconName } from '@/components/ui/icon';
 import { GoldStreaks, VeteransFlag } from '@/features/marketing/veterans-artwork';
 import { SITE_CONTACT, phoneHref } from '@/features/site/site-contact';
 
-export const metadata: Metadata = {
-  title: 'Veterans: Train Tuition-Free',
-  description: 'Verified U.S. military veterans can train with United States Security Academy tuition-free. See who is eligible and how to apply.',
-};
+export const metadata: Metadata = buildPageMetadata({
+  title: 'Tuition-Free Training for U.S. Veterans',
+  description: 'Verified U.S. military veterans can train in security, law enforcement and corrections tuition-free at United States Security Academy. See how to apply.',
+  path: '/veterans',
+});
 
 // Where the home page's veterans announcement (APPLY NOW) leads. There is no online application:
 // veterans apply by phone or email and staff verify their service. The wording below is USSA's
