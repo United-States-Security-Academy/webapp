@@ -19,6 +19,7 @@ export default function robots(): MetadataRoute.Robots {
         '/forgot-password',
         '/post-sign-in',
         '/reset-password',
+        '/two-factor',
       ],
     },
     sitemap: absoluteUrl('/sitemap.xml'),

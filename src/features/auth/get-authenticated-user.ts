@@ -29,6 +29,8 @@ interface SupabaseTokenClaims {
   userId: string;
   email?: string;
   displayName?: string;
+  // 'aal2' once the session has passed a second factor (authenticator code); 'aal1' for password/Google alone.
+  assuranceLevel?: string;
 }
 
 async function verifySupabaseAccessToken(supabaseAccessToken: string): Promise<SupabaseTokenClaims | null> {
@@ -44,6 +46,7 @@ async function verifySupabaseAccessToken(supabaseAccessToken: string): Promise<S
       userId: payload.sub,
       email: typeof payload.email === 'string' ? payload.email : undefined,
       displayName: userMetadata?.full_name || userMetadata?.name,
+      assuranceLevel: typeof payload.aal === 'string' ? payload.aal : undefined,
     };
   } catch {
     return null;
@@ -104,6 +107,18 @@ async function resolveAuthenticatedUser(supabaseAccessToken: string | null): Pro
 
   const userRecord = (await getUserRecordById(claims.userId)) ?? (await provisionLearnerRecord(claims));
   if (!userRecord) return null;
+
+  // Admin powers require two-factor. Until the session reaches aal2, an admin is treated as a
+  // learner everywhere (pages, Server Actions, API routes) and sent to /two-factor to finish.
+  if (userRecord.role === 'admin' && claims.assuranceLevel !== 'aal2') {
+    return {
+      userId: userRecord.id,
+      email: userRecord.email,
+      displayName: userRecord.displayName,
+      role: 'learner',
+      isAwaitingAdminTwoFactor: true,
+    };
+  }
 
   return {
     userId: userRecord.id,
