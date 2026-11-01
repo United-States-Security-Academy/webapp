@@ -4,12 +4,34 @@ import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import type { AuthError } from '@supabase/supabase-js';
 import { getSupabaseBrowserClient } from '@/supabase/browser-client';
 import { ResendConfirmationButton } from '@/features/auth/resend-confirmation-button';
 import { ContinueWithGoogleButton } from '@/features/auth/continue-with-google-button';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { PasswordInput } from '@/components/ui/password-input';
+
+const CONFIRMATION_MESSAGE = 'Check your email to confirm your account, then sign in.';
+const EXISTING_ACCOUNT_ERROR_CODES = new Set(['user_already_exists', 'email_exists']);
+
+// Supabase's own error text can reveal account details, so only fixed messages are shown —
+// except for weak passwords, where its text only lists the project's password requirements.
+function getSignUpErrorMessage(error: AuthError): string {
+  switch (error.code) {
+    case 'weak_password':
+      return error.message;
+    case 'email_address_invalid':
+      return 'Enter a valid email address.';
+    case 'over_email_send_rate_limit':
+    case 'over_request_rate_limit':
+      return 'Too many attempts. Please wait a few minutes and try again.';
+    case 'signup_disabled':
+      return 'New sign-ups are currently closed.';
+    default:
+      return 'We couldn’t create your account. Please try again.';
+  }
+}
 
 export default function SignUpPage() {
   const router = useRouter();
@@ -40,14 +62,16 @@ export default function SignUpPage() {
     });
 
     setIsSubmitting(false);
-    if (error) {
-      setErrorMessage(error.message);
+    // An email that already has an account gets the same screen as a brand-new sign-up, so the
+    // form can't be used to find out who is registered.
+    if (error && !EXISTING_ACCOUNT_ERROR_CODES.has(error.code ?? '')) {
+      setErrorMessage(getSignUpErrorMessage(error));
       return;
     }
 
     // Email confirmation is required by the Supabase project — no session yet.
-    if (!data.session) {
-      setConfirmationMessage('Check your email to confirm your account, then sign in.');
+    if (error || !data.session) {
+      setConfirmationMessage(CONFIRMATION_MESSAGE);
       return;
     }
 
