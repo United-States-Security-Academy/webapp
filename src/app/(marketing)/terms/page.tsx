@@ -1,10 +1,12 @@
 import type { Metadata } from 'next';
+import { buildPageMetadata } from '@/features/seo/site-seo';
 import { LegalDocument, type LegalSection } from '@/components/layout/legal-document';
 
-export const metadata: Metadata = {
+export const metadata: Metadata = buildPageMetadata({
   title: 'Terms & Conditions',
-  description: 'The terms that apply when you use the United States Security Academy website and courses.',
-};
+  description: 'The terms and conditions that apply when you use the United States Security Academy website, enroll in training courses and take certification exams.',
+  path: '/terms',
+});
 
 const SECTIONS: LegalSection[] = [
   {

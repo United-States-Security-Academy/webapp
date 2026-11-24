@@ -1,6 +1,9 @@
 import Link from 'next/link';
 import { Icon } from '@/components/ui/icon';
 import { Card } from '@/components/ui/card';
+import { NO_INDEX_METADATA } from '@/features/seo/site-seo';
+
+export const metadata = NO_INDEX_METADATA;
 
 export default async function CheckoutCancelPage({
   searchParams,

@@ -70,7 +70,7 @@ export function SiteHeader({ authenticatedUser }: { authenticatedUser: Authentic
           <Link href="/" className="flex shrink-0 items-center gap-3">
             <Image
               src="/ussalogo.png"
-              alt="USSA seal"
+              alt="United States Security Academy seal"
               width={80}
               height={80}
               className="h-16 w-16 sm:h-20 sm:w-20 lg:h-14 lg:w-14"

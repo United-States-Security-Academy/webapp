@@ -12,12 +12,15 @@ export function CourseHero({
   tagline,
   highlights,
   backLink,
+  programHref,
 }: {
   course: Course;
   courseCode?: string;
   tagline?: string;
   highlights: { label: string; value: string }[];
   backLink: { href: string; label: string };
+  // Set on the public catalog, where the program name links to its /programs page.
+  programHref?: string;
 }) {
   const categoryMeta = COURSE_CATEGORY_META[course.category];
 
@@ -29,10 +32,17 @@ export function CourseHero({
             {backLink.label}
           </Link>
           <span aria-hidden>/</span>
-          <span className="flex items-center gap-1.5 text-slate-300">
-            <Icon name={categoryMeta.icon} className="h-3.5 w-3.5" aria-hidden />
-            {categoryMeta.label}
-          </span>
+          {programHref ? (
+            <Link href={programHref} className="flex items-center gap-1.5 text-slate-300 hover:text-gold-400">
+              <Icon name={categoryMeta.icon} className="h-3.5 w-3.5" aria-hidden />
+              {categoryMeta.programTitle}
+            </Link>
+          ) : (
+            <span className="flex items-center gap-1.5 text-slate-300">
+              <Icon name={categoryMeta.icon} className="h-3.5 w-3.5" aria-hidden />
+              {categoryMeta.label}
+            </span>
+          )}
           {course.status !== 'published' && (
             <span className="ml-1">
               <Badge>{course.status}</Badge>

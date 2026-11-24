@@ -1,12 +1,14 @@
 import { PageBanner } from '@/components/layout/page-banner';
 import { Icon, type IconName } from '@/components/ui/icon';
 import type { Metadata } from 'next';
+import { buildPageMetadata } from '@/features/seo/site-seo';
 import { SITE_CONTACT } from '@/features/site/site-contact';
 
-export const metadata: Metadata = {
-  title: 'Contact Us',
-  description: 'Contact USSA about enrollment, group training for your agency, or general questions.',
-};
+export const metadata: Metadata = buildPageMetadata({
+  title: 'Contact Us About Enrollment & Group Training',
+  description: 'Contact United States Security Academy about course enrollment, group training for your agency or officers, or general questions. Call (832) 260-6092.',
+  path: '/contact',
+});
 
 const CONTACT_DETAILS: { icon: IconName; label: string; value: string }[] = [
   { icon: 'phone', label: 'Phone', value: SITE_CONTACT.mainPhone },

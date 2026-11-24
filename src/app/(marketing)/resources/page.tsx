@@ -1,11 +1,15 @@
 import { PageBanner } from '@/components/layout/page-banner';
 import { Icon, type IconName } from '@/components/ui/icon';
 import type { Metadata } from 'next';
+import { buildPageMetadata } from '@/features/seo/site-seo';
+import { JsonLd } from '@/components/seo/json-ld';
+import { buildFaqStructuredData } from '@/features/seo/structured-data';
 
-export const metadata: Metadata = {
-  title: 'Resources',
-  description: 'Student handbook, certification verification, compliance updates and answers to common questions.',
-};
+export const metadata: Metadata = buildPageMetadata({
+  title: 'Training Resources & Certification FAQs',
+  description: 'Student handbook, certification verification, compliance updates and answers to common questions about security and law enforcement training at USSA.',
+  path: '/resources',
+});
 
 const RESOURCE_LINKS: { icon: IconName; title: string; description: string }[] = [
   { icon: 'bookOpen', title: 'Student Handbook', description: 'Policies, conduct standards, and program requirements for enrolled students.' },
@@ -35,6 +39,7 @@ const FAQS = [
 export default function ResourcesPage() {
   return (
     <>
+      <JsonLd data={buildFaqStructuredData(FAQS)} />
       <PageBanner
         title="Resources"
         subtitle="Handbooks, compliance updates, and answers to common questions about training and certification."

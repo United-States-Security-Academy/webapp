@@ -6,6 +6,7 @@ import { isUserEnrolledInCourse } from '@/features/enrollments/enrollment-querie
 import { computeCourseProgress, getCompletedLessonTimes } from '@/features/progress/course-progress-queries';
 import { getCourseExamSummary, getRequiredAssessmentStatuses } from '@/features/assessments/assessment-queries';
 import { formatCoursePrice } from '@/features/courses/format-course-price';
+import { COURSE_CATEGORY_META } from '@/features/courses/course-category';
 import { getStructuredCourseOutlines } from '@/features/structured-courses/structured-course-outline-queries';
 import {
   buildStructuredLessonHref,
@@ -219,11 +220,13 @@ export async function CourseDetailContent({ courseSlug, basePath }: CourseDetail
       : []),
   ];
 
-  const backLink = basePath === '/courses' ? { href: '/courses', label: 'All courses' } : { href: '/dashboard/courses', label: 'Browse courses' };
+  const isPublicCatalog = basePath === '/courses';
+  const backLink = isPublicCatalog ? { href: '/courses', label: 'All courses' } : { href: '/dashboard/courses', label: 'Browse courses' };
+  const programHref = isPublicCatalog ? `/programs/${COURSE_CATEGORY_META[courseRecord.category].urlSlug}` : undefined;
 
   return (
     <div className={hasFullAccess ? '' : 'pb-24 lg:pb-0'}>
-      <CourseHero course={courseRecord} courseCode={detail.courseCode} tagline={detail.tagline} highlights={highlights} backLink={backLink} />
+      <CourseHero course={courseRecord} courseCode={detail.courseCode} tagline={detail.tagline} highlights={highlights} backLink={backLink} programHref={programHref} />
 
       <div className="mx-auto max-w-6xl px-4 pb-16 lg:grid lg:grid-cols-[minmax(0,1fr)_360px] lg:gap-12">
         {/* Phones: the enroll card comes straight after the header. Large screens: a pinned

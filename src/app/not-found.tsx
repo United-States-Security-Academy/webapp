@@ -6,7 +6,7 @@ export const metadata = { title: 'Page not found' };
 export default function NotFound() {
   return (
     <main className="flex min-h-screen flex-col items-center justify-center bg-slate-50 px-4 text-center">
-      <Image src="/ussalogo.png" alt="USSA seal" width={64} height={64} className="h-16 w-16" />
+      <Image src="/ussalogo.png" alt="United States Security Academy seal" width={64} height={64} className="h-16 w-16" />
       <p className="mt-6 text-sm font-bold uppercase tracking-widest text-gold-600">404</p>
       <h1 className="mt-2 text-2xl font-extrabold text-navy-900">Page not found</h1>
       <p className="mt-2 max-w-md text-sm text-slate-600">

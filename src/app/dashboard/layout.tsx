@@ -7,10 +7,14 @@ import { DashboardSidebar, DashboardSidebarContent } from '@/features/dashboard/
 import { SidebarDrawer } from '@/components/layout/sidebar-drawer';
 import { getThemePreference } from '@/features/theme/get-theme-preference';
 import { ThemeScope } from '@/features/theme/theme-scope';
+import { NO_INDEX_METADATA } from '@/features/seo/site-seo';
+
+export const metadata = NO_INDEX_METADATA;
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const authenticatedUser = await getAuthenticatedUserFromSession();
   if (!authenticatedUser) redirect('/sign-in');
+  if (authenticatedUser.isAwaitingAdminTwoFactor) redirect('/two-factor');
 
   const [profile, themePreference] = await Promise.all([getStudentProfile(authenticatedUser.userId), getThemePreference()]);
 

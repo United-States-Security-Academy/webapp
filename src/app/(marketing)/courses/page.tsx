@@ -6,11 +6,13 @@ import { COURSE_CATEGORIES, COURSE_CATEGORY_META } from '@/features/courses/cour
 import { Icon } from '@/components/ui/icon';
 import type { CourseCategory } from '@/features/courses/course-types';
 import type { Metadata } from 'next';
+import { buildPageMetadata } from '@/features/seo/site-seo';
 
-export const metadata: Metadata = {
-  title: 'Courses & Programs',
-  description: 'Browse USSA online training courses and programs.',
-};
+export const metadata: Metadata = buildPageMetadata({
+  title: 'Security & Law Enforcement Training Courses',
+  description: 'Browse online security officer, law enforcement, corrections, military and safety training courses, with a certificate when you complete each course.',
+  path: '/courses',
+});
 
 function buildCoursesHref(searchQuery?: string, category?: CourseCategory): string {
   const params = new URLSearchParams();

@@ -1,6 +1,7 @@
 import { Icon } from '@/components/ui/icon';
 
-const FAQ_ITEMS: { question: string; answer: string }[] = [
+// Also feeds the homepage's FAQPage structured data, so the markup always matches what's shown.
+export const FAQ_ITEMS: { question: string; answer: string }[] = [
   {
     question: 'Who is United States Security Academy training for?',
     answer:
