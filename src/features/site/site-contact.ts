@@ -3,7 +3,7 @@
 export const SITE_CONTACT = {
   mainPhone: '(832) 260-6092',
   // Additional lines shown on course pages for enrollment and course questions.
-  additionalPhones: ['(832) 272-0511', '(817) 825-2872'],
+  additionalPhones: [],
   email: 'info@ussa-academy.com',
   address: '12808 W. Airport Blvd., Suite 224, Sugar Land, Texas 77478',
   // The same address split into parts, for search engines' structured data. Keep in step with `address`.

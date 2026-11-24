@@ -148,7 +148,7 @@ export function TrainingOptionsSection({ deliveryOptions }: { deliveryOptions: N
 
 export function RequirementsSection({ prerequisites, audience }: { prerequisites: string[]; audience: string[] }) {
   return (
-    <CoursePageSection id="requirements" title="Requirements & who it's for">
+    <CoursePageSection id="requirements" title="Requirements And Who Should Enroll">
       <div className={`grid gap-8 ${prerequisites.length > 0 && audience.length > 0 ? 'md:grid-cols-2' : ''}`}>
         {prerequisites.length > 0 && (
           <div>

@@ -341,7 +341,7 @@ export function CoursePageEditor({
           )}
         </EditorSection>
 
-        <EditorSection id="editor-requirements" title="Requirements & who it's for">
+        <EditorSection id="editor-requirements" title="Requirements And Who Should Enroll">
           <TextListEditor
             label="Before you enroll"
             help="Prerequisites and what students need, e.g. reliable internet access."
